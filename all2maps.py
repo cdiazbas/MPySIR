@@ -53,7 +53,9 @@ def do1map(logTau, magnitud):
     # global magnitud
 
     # ========================= INPUT
-    invSir1 = 'finalSir.npy'
+    invSir1 = 'MAPA1.npy'
+    invSir2 = 'MAPA2.npy'
+
     # logTau = 0.0
     # magnitud = 2
     # hsv
@@ -63,6 +65,7 @@ def do1map(logTau, magnitud):
 
     # ========================= MAP
     resultadoSir1 = np.load(invSir1)
+    resultadoSir2 = np.load(invSir2)
     # height, width = dimMap(resultadoSir1)
     # print('height:',height,'width:',width)
 
@@ -72,7 +75,13 @@ def do1map(logTau, magnitud):
     # readmapa(resultadoSir1, mapa.T ,magnitud)
 
     from pySir import sirtools as st
-    mapa = st.readSIRMap(resultadoSir1, magnitud, index)
+    mapa1 = st.readSIRMap(resultadoSir1, magnitud, index)
+    mapa2 = st.readSIRMap(resultadoSir2, magnitud, index)
+
+    mapa = np.concatenate((mapa1, mapa2))
+
+    from scipy import ndimage
+    mapa = ndimage.median_filter(np.flipud(mapa), 3)
 
     # Limites en la escala de color
     if magnitud == 7: corrphi(mapa)
@@ -87,12 +96,12 @@ def do1map(logTau, magnitud):
     if magnitud == 1 or magnitud == 4: vmini = np.min(mapa); vmaxi = np.max(mapa)
     if magnitud == 6: vmaxi = 180.
     if magnitud == 7: vmaxi = 180.;vmini = 0.
-    if magnitud == 11: vmaxi = np.mean(mapa)+6*np.std(mapa); vmini = 0.
+    if magnitud == 11: vmaxi = np.max(mapa); vmini = 0.
     if magnitud == 5: vmini = np.mean(mapa)-4*np.std(mapa); vmaxi = -vmini
 
     from matplotlib.colors import LogNorm
     plt.imshow(mapa,cmap=cmapArray[magnitud],origin='lower',interpolation='None',vmin=vmini,vmax=vmaxi)#norm=LogNorm()
-    plt.title('Map 17jun14.006 (3-4)')
+    plt.title('Map 17jun14.006 (1-2)')
     plt.xlabel('Slit Axis [pix]')
     plt.ylabel('Time Axis [pix]')
     cb = plt.colorbar(shrink=.46)#, ticks=[0.6, 0.8, 1., 1.2])
@@ -109,4 +118,4 @@ def do1map(logTau, magnitud):
 
 
 for magnitud in range(12):
-    do1map(0.0,magnitud)
+    do1map(0.0, magnitud)
