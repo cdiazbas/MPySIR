@@ -8,7 +8,7 @@ def clean():
 	import os
 	# We delete all node's folder
 	os.system('rm -Rf node*')
-	print('Directorio limpio.')
+	print('[INFO] Cleaned')
 	return
 
 if __name__ == '__main__':

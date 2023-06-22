@@ -3,61 +3,95 @@
 #
 #  SCRIPT: sirutils.py
 ###############################################################
-"""
-# Author: cdiazbas@iac.es
-# Date: 09.06.2015
-# Version: 1.4
-"""
 
-"""
-Some functions useful for MPI parallel programming
-"""
 
 from mpi4py import MPI
-from pySir.sirtools import lmodel8
+from sirtools import lmodel8, wmodel8
+from sirtools import lperfil
 
 #=============================================================================
 def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
 
-		finalProfile = 'hsraB_3.per'
+    finalProfile = 'hsraB_3.per'
 
-		if sirmode == 'gammaV' or sirmode == 'gammVaddFullProfile':
-			gammaV()
+    if sirmode == 'gammaV' or sirmode == 'gammVaddFullProfile':
+        gammaV()
 
-		if sirmode == 'medianFilter':
-			medianFilter(fila, columna)
+    if sirmode == 'medianFilter':
+        medianFilter(fila, columna)
 
-		import os
-		os.system('echo sir.trol | '+sirfile+' > pylog.txt')
+    import os
+    os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
-		# Ahora almacenamos los resultados en memoria   
-		tau, magnitudes = lmodel8(modeloFin,verbose=False)
-		ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
-		magnitudes.insert(0,tau)
-		ERRmagnitudes.insert(0,ERRtau)
+    # We now read the model and the profile
+    tau, magnitudes = lmodel8(modeloFin,verbose=False)
+    ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
+    magnitudes.insert(0,tau)
+    ERRmagnitudes.insert(0,ERRtau)
 
-		if chi2map:
-			chifile = open('sir.chi','r')
-			for line in chifile:
-				pass
-			chi2 = float(line.split()[1])
-			lenmag = len(magnitudes)
-			magnitudes.insert(lenmag,chi2)
-			ERRmagnitudes.insert(lenmag,chi2)
+    if chi2map:
+        chifile = open('sir.chi','r')
+        for line in chifile:
+            pass
+        chi2 = float(line.split()[1])
+        lenmag = len(magnitudes)
+        magnitudes.insert(lenmag,chi2)
+        ERRmagnitudes.insert(lenmag,chi2)
 
-		if sirmode == 'addFullProfile' or sirmode == 'gammVaddFullProfile':
-			addFullProfile(sirfile)
-			finalProfile = 'dataFull.per'
+    if sirmode == 'addFullProfile' or sirmode == 'gammVaddFullProfile':
+        addFullProfile(sirfile)
+        finalProfile = 'dataFull.per'
 
-		from pySir.sirtools import lperfil
-		xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
-		perfiles = [xFull,stokesFull]
-		modelos = [magnitudes, ERRmagnitudes]
-		punto = [fila + myHeight*rank, columna]
-		resultadoSir.append([punto,modelos,perfiles])
+    xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
+    perfiles = [xFull,stokesFull]
+    modelos = [magnitudes, ERRmagnitudes]
+    punto = [fila + myHeight*rank, columna]
+    resultadoSir.append([punto,modelos,perfiles])
 
-		if sirmode == 'beforePixel':
-			os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
+    if sirmode == 'beforePixel':
+        os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
+
+
+#=============================================================================
+def medianFilter(fila, columna):
+
+	import numpy as np
+	medianGAMMA = np.load('medianGAMMA.npy')
+	gamma_median = medianGAMMA[columna, fila]
+	
+	from numpy import ones
+	tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
+	modelo = [tau, magnitudes]
+	magnitudes[5] = gamma_median*ones(len(magnitudes[5]))
+	wmodel8(modelo,'hsraB.mod',verbose=False)
+
+
+#=============================================================================
+def addFullProfile(sirfile):
+	import os
+	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
+
+
+#=============================================================================
+def modify_malla(dictLines, x):
+    """
+    Modifies the "malla.grid" file to change the wavelength range.
+    """
+    # Read the file:
+    f = open('invDefault/malla_.grid','r')
+    lines = f.readlines()
+    f.close()
+
+    # Only modify the last line 
+    step = x[1]-x[0]
+    space = 10*' '
+    lines[-1] = '{0}     :     {1:6.4f},     {2:6.4f},     {3:6.4f}'.format(dictLines['atom'],x[0],step,x[-1])+'\n'
+    print('[INFO] malla.grid updated: ',lines[-1])
+
+    # Write the file:
+    f = open('invDefault/malla.grid','w')
+    f.writelines(lines)
+    f.close()
 
 
 
@@ -139,7 +173,6 @@ def plotper():
 	YRANGEMIN = -YRANGEMAX; YRANGEMIN[0] = 0
 
 
-	from pySir.sirtools import lperfil
 	# Abrimos los ficheros:
 	x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
 
@@ -294,7 +327,6 @@ def plotmfit():
 	Color1='k'
 	Color2 = 'm'
 
-	from pySir.sirtools import lmodel8
 
 	tau, TodoPlot = lmodel8(MainFile,verbose=False)
 	tau2, TodoPlot2 = lmodel8(filename,verbose=False)
@@ -367,7 +399,6 @@ def gammaV():
 
 	MainFile = 'data.per'
 
-	from pySir.sirtools import lperfil
 	x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
 
 	indice = cerca(0.,x0)
@@ -385,7 +416,6 @@ def gammaV():
 	if int_azul > int_roja: gamma = 45.0
 	if int_azul < int_roja: gamma = 135.0
 
-	from pySir.sirtools import lmodel8, wmodel8
 	from numpy import ones
 	tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
 	modelo = [tau, magnitudes]
@@ -393,22 +423,3 @@ def gammaV():
 	wmodel8(modelo,'hsraB.mod',verbose=False)
 
 
-#=============================================================================
-def medianFilter(fila, columna):
-
-	import numpy as np
-	medianGAMMA = np.load('medianGAMMA.npy')
-	gamma_median = medianGAMMA[columna, fila]
-	
-	from pySir.sirtools import lmodel8, wmodel8
-	from numpy import ones
-	tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
-	modelo = [tau, magnitudes]
-	magnitudes[5] = gamma_median*ones(len(magnitudes[5]))
-	wmodel8(modelo,'hsraB.mod',verbose=False)
-
-
-#=============================================================================
-def addFullProfile(sirfile):
-	import os
-	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
