@@ -8,6 +8,10 @@
 from mpi4py import MPI
 from sirtools import lmodel8, wmodel8
 from sirtools import lperfil
+import matplotlib.pyplot as plt
+import os
+import numpy as np
+
 
 #=============================================================================
 def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
@@ -20,15 +24,18 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
     if sirmode == 'medianFilter':
         medianFilter(fila, columna)
 
+
+    # We run SIR
     import os
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
-    # We now read the model and the profile
+    # We now read the model parameters after the fitting:
     tau, magnitudes = lmodel8(modeloFin,verbose=False)
     ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
     magnitudes.insert(0,tau)
     ERRmagnitudes.insert(0,ERRtau)
 
+    # We add the chi2 value to the list of parameters:
     if chi2map:
         chifile = open('sir.chi','r')
         for line in chifile:
@@ -42,6 +49,7 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
         addFullProfile(sirfile)
         finalProfile = 'dataFull.per'
 
+    # We read the final synthetic profiles after the fitting:
     xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
     perfiles = [xFull,stokesFull]
     modelos = [magnitudes, ERRmagnitudes]
@@ -51,25 +59,6 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
     if sirmode == 'beforePixel':
         os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
 
-
-#=============================================================================
-def medianFilter(fila, columna):
-
-	import numpy as np
-	medianGAMMA = np.load('medianGAMMA.npy')
-	gamma_median = medianGAMMA[columna, fila]
-	
-	from numpy import ones
-	tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
-	modelo = [tau, magnitudes]
-	magnitudes[5] = gamma_median*ones(len(magnitudes[5]))
-	wmodel8(modelo,'hsraB.mod',verbose=False)
-
-
-#=============================================================================
-def addFullProfile(sirfile):
-	import os
-	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
 
 
 #=============================================================================
@@ -86,12 +75,58 @@ def modify_malla(dictLines, x):
     step = x[1]-x[0]
     space = 10*' '
     lines[-1] = '{0}     :     {1:6.4f},     {2:6.4f},     {3:6.4f}'.format(dictLines['atom'],x[0],step,x[-1])+'\n'
-    print('[INFO] malla.grid updated: ',lines[-1])
+    print('[INFO] malla.grid updated: ',lines[-1][:-1])
 
     # Write the file:
     f = open('invDefault/malla.grid','w')
     f.writelines(lines)
     f.close()
+
+
+#=============================================================================
+def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence):
+    """
+    Modifies the "sir.trol" file to change the number of nodes.
+    """
+    # Read the file:
+    f = open('invDefault/sir_.trol','r')
+    lines = f.readlines()
+    f.close()
+
+    """The lines appear in the following order:
+    Nodes for temperature 1      :2,3,5
+    Nodes for electr. press. 1   :0
+    Nodes for microturb. 1       :0
+    Nodes for magnetic field 1   :1,2,2
+    Nodes for LOS velocity 1     :1,2,2
+    Nodes for gamma 1            :1,1,2
+    Nodes for phi 1              :1,1,2
+    Invert macroturbulence 1?    :0
+    """
+
+    # Modify the lines:
+    lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
+    lines[17] = 'Nodes for magnetic field 1   :'+str(Nodes_magneticfield)+'\n'
+    lines[18] = 'Nodes for LOS velocity 1     :'+str(Nodes_LOSvelocity)+'\n'
+    lines[19] = 'Nodes for gamma 1            :'+str(Nodes_gamma)+'\n'
+    lines[20] = 'Nodes for phi 1              :'+str(Nodes_phi)+'\n'
+    lines[21] = 'Invert macroturbulence 1?    :'+str(Invert_macroturbulence)+'\n'
+
+    # Write the file:
+    f = open('invDefault/sir.trol','w')
+    f.writelines(lines)
+    f.close()
+    print('[INFO] sir.trol updated')
+
+
+
+
+
+#=============================================================================
+def addFullProfile(sirfile):
+	import os
+	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
+
 
 
 
@@ -149,25 +184,16 @@ def getTerminalSize():
 
 #=============================================================================
 def plotper():
-	import matplotlib.pyplot as plt
-	import os
-	import numpy as np
-
-	# import seaborn as sns
-	# #sns.set(font="serif")
-	# sns.set_style("ticks")
-
+    """
+    Plots the observed and synthetic profiles.
+    """
 
 	filename='hsraB_3.per'
-	#LineName=['SiI 10827.1']
 	LineName = ['FeI 6301.5']#,'FeI 6302.5','SiI 10827.1','FeI 15648.5','FeI 15652.9']
 	NumeroLineas = len(LineName)
 	MainFile = 'data.per'
 	Color2 = 'm'
 	Color1='k'
-
-	# XRANGEMAX = array([0.68,0.6,1.6,1.,1.])
-	# XRANGEMIN = -XRANGEMAX; XRANGEMIN[0] = -3
 
 	YRANGEMAX = np.array([1.1,3.,3.,3.,3.])
 	YRANGEMIN = -YRANGEMAX; YRANGEMIN[0] = 0
@@ -202,18 +228,10 @@ def plotper():
 
 	sParam = 4
 	plt.figure(figsize=(15,5))
-
-	# Ejemplo de titulo
-	# title(r' '+LineName[Index].split()[0]+' $'+LineName[Index].split()[1]+'\AA$',fontsize=10)
-
-
 	for Index in range(0,NumeroLineas):
 		
 		plt.subplot(NumeroLineas,sParam,Index+1)
 		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],StokeI0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-
-		# xticks(fontsize = 7)
-		# yticks(fontsize = 9)
 		plt.tick_params(axis='y', direction='in')
 		plt.tick_params(axis='x', direction='in')
 		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
@@ -227,9 +245,6 @@ def plotper():
 
 		plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
 		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeQ0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-
-		# xticks(fontsize = 7)
-		# yticks(fontsize = 9)
 		plt.tick_params(axis='y', direction='in')
 		plt.tick_params(axis='x', direction='in')
 		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
@@ -244,9 +259,6 @@ def plotper():
 
 		plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
 		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeU0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-
-		# xticks(fontsize = 7)
-		# yticks(fontsize = 9)
 		plt.tick_params(axis='y', direction='in')
 		plt.tick_params(axis='x', direction='in')
 		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
@@ -262,9 +274,6 @@ def plotper():
 
 		plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
 		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeV0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-
-		# xticks(fontsize = 7)
-		# yticks(fontsize = 9)
 		plt.tick_params(axis='y', direction='in')
 		plt.tick_params(axis='x', direction='in')
 		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
@@ -296,7 +305,7 @@ def plotper():
 	plt.tight_layout()
 
 	plt.savefig('P'+filename[0:-4]+'.pdf', bbox_inches='tight')#, pad_inches=0)
-	print('P'+filename[0:-4]+'.pdf'+':: GUARDADO')
+	print('P'+filename[0:-4]+'.pdf'+':: SAVED')
 
 	return
 

@@ -26,12 +26,11 @@ def corrphi(azimuthmap):
     azimuthmap[azimuthmap>180] = (azimuthmap[azimuthmap>180]-180)
     return
 
-
+# ========================= PLOT 1 MAP
 def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
 
-    # hsv
     cmapArray = ['gray','gray','gray','bone','bone','seismic','Spectral_r',phimap,'bone','gray','gray','cubehelix']
-    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [kK]}$','p',r'${\rm v\ [km/s]}$',r'${\rm B\ [kG]}$',r'${\rm v\ [km/s]}$',r'${\rm \gamma\ [d]}$',r'${\rm \phi\ [d]}$','vmacro','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
+    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$','p',r'${\rm v\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v\ [cm/s]}$',r'${\rm \gamma\ [d]}$',r'${\rm \phi\ [d]}$','vmacro','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
     magFile = ['_LOGTAU','_TEMP','_PGAS','_VMICRO','_B','_VLOS','_INCLINATION','_AZIMUTH','_VMACRO','_FILLING','_ALPHA','_CHI2']
 
     # ========================= MAP
@@ -56,7 +55,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
     if parameter == 11: vmaxi = np.mean(param2plot)+6*np.std(param2plot); vmini = 0.
     if parameter == 5: vmini = np.mean(param2plot)-4*np.std(param2plot); vmaxi = -vmini
 
-    # Plot
+    # Plot the map associated to the parameter:
     plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='None',vmin=vmini,vmax=vmaxi)
     plt.xlabel('X Axis [pix]')
     plt.ylabel('Y Axis [pix]')
@@ -64,11 +63,15 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
     loglabel = r'${\rm log(\tau)=}$'
     cb.set_label(r""+magTitle[parameter]+r", "+loglabel+"{0}".format(logTau), labelpad=8., y=0.5, fontsize=12.)
 
-    plt.savefig(magFile[parameter]+'_log{0:02d}.pdf'.format(int(logTau)), bbox_inches='tight')
-    print(magFile[parameter]+'_log{0:02d}.pdf SAVE'.format(int(logTau)))
+    plt.savefig(magFile[parameter]+'_log{0:02.2f}.pdf'.format(logTau), bbox_inches='tight')
+    print(magFile[parameter]+'_log{0:02.2f}.pdf SAVE'.format(logTau))
     print('-----------------------'+str(parameter))
     plt.clf()
 
 
+
+
+inversion_model = 'finalSIR_model_smoothed.npy'
+index = 14 # Corresponds to logtau = 0.0
 for parameter in range(12):
-    plot1map(14,parameter)
+    plot1map(index,parameter, inversion_model = inversion_model)

@@ -216,7 +216,7 @@ def lmodel8(modelo, verbose=False):
     phi = array(phi)
     lenTau = len(tau)
 
-    todoPlot = [temp/1000.,Pres,vmic*1E-5,BMag/1000.,vlos*1E-5,gamma,phi,vmac,fill,stray]
+    todoPlot = [temp,Pres,vmic,BMag,vlos,gamma,phi,vmac,fill,stray]
     fo.close()
     if verbose:
         print('temp[kK], Pres[dyn cm^-3], vmic[km/s], BMag[kG], vlos[km/s], gamma[deg], phi[deg], vmac[km/s], fill, stray')
@@ -226,18 +226,15 @@ def lmodel8(modelo, verbose=False):
 
 
 
-
-
-
 # ====================================================================
 def wmodel8(modelo, filename, verbose=False):
 
     [tau, todoPlot] = modelo
-    temp = 1000.*todoPlot[0]
+    temp = todoPlot[0]
     Pres = todoPlot[1]
-    vmic = todoPlot[2]/1E-5
-    Bmag = todoPlot[3]*1000.
-    vlos = todoPlot[4]/1E-5
+    vmic = todoPlot[2]
+    Bmag = todoPlot[3]
+    vlos = todoPlot[4]
     gamma = todoPlot[5]
     phi = todoPlot[6]
     vmac = todoPlot[7]
@@ -338,6 +335,29 @@ def lmodel12(modelo, verbose=False):
 
 # ====================================================================
 def wmodel12(modelo, filename, verbose=False):
+    """
+    Write a model file for SIR with the format of lmodel12
+    
+    Each model file contains the macroturbulent velocity (km/s), the
+    filling factor (only to be used with two-component models, ranging
+    from 0 to 1), and the stray light factor (in percent) in the first line.
+    Then, eight columns follow:
+     
+    Column 1: log tau_5 (logarithm of the continuum optical depth at 5000 A)
+    Column 2: Temperature (K)
+    Column 3: Electron pressures (dyn/cm^2)
+    Column 4: Microturbulent velocity (cm/s)
+    Column 5: Magnetic field strength (G)
+    Column 6: Line-of-sight velocity (cm/s)
+    Column 7: Inclination angle of the magnetic field vector in deg 
+              from 0 (pointing to the observer) to 180 (pointing away from the
+              observer)
+    Column 8: Azimuthal angle of the magnetic field vector in deg. 
+    Column 9: Geometrical scale (km)
+    Column 10: Gas presure (dyn/cm^2)
+    Column 11: Gas density (gr/cm^3)
+    '''
+    """
 
     [tau, todoPlot] = modelo
     temp = todoPlot[0]

@@ -22,6 +22,7 @@ def readSIRMap(outputSir, parameter, tau):
         for columna in range(0, widthMap):
             punto = cont % outputSir.shape[1]
             veces = int(cont/outputSir.shape[1])
+            # For vmac, fill, stray and chi2 we need to take the first value
             if parameter == 8 or parameter == 9 or parameter == 10 or parameter == 11:
                 mapa[columna,fila] = outputSir[veces][punto][1][0][parameter]
             else:
@@ -80,7 +81,7 @@ def create_profilemap(inversion_file):
 # ====================================================================
 def create_modelmap(inversion_file, npar = 12):
     """
-    It creates a file with the model parameters from the inversion
+    It creates a file with the model parameters [ny, nx, ntau, npar] from the inversion 
     """
     # Read the inversion file:
     inversion = np.load(inversion_file,encoding='latin1',allow_pickle=True)
