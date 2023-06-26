@@ -160,5 +160,8 @@ cython_debug/
 #.idea/
 #
 
-# inversion results should not be pushed:
+# inversion results should not be tracked:
 *.npy
+
+# temporal folders should not be tracked:
+node*

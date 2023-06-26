@@ -9,8 +9,8 @@ from mpi4py import MPI
 from sirtools import lmodel8, wmodel8
 from sirtools import lperfil
 import matplotlib.pyplot as plt
-import os
 import numpy as np
+import os
 
 
 #=============================================================================
@@ -120,6 +120,28 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
 
 
 
+#=============================================================================
+def modify_vmacro(initial_vmacro):
+    """
+    Modifies the guess model with the initial macroturbulence.
+    """
+    # Read the file:
+    f = open('invDefault/hsraB_.mod','r')
+    lines = f.readlines()
+    f.close()
+    
+    # The vmacro is in the index 0 (of 3 elements) of the 1st line:
+    firstLine = lines[0].split()
+    newLine = '  '+str(initial_vmacro)+'  '+firstLine[1]+'  '+firstLine[2]+'\n'
+    lines[0] = newLine
+    
+    # Write the file:
+    f = open('invDefault/hsraB.mod','w')
+    f.writelines(lines)
+    f.close()
+    print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')
+    
+    
 
 
 #=============================================================================
@@ -188,126 +210,126 @@ def plotper():
     Plots the observed and synthetic profiles.
     """
 
-	filename='hsraB_3.per'
-	LineName = ['FeI 6301.5']#,'FeI 6302.5','SiI 10827.1','FeI 15648.5','FeI 15652.9']
-	NumeroLineas = len(LineName)
-	MainFile = 'data.per'
-	Color2 = 'm'
-	Color1='k'
+    filename='hsraB_3.per'
+    LineName = ['FeI 6301.5']#,'FeI 6302.5','SiI 10827.1','FeI 15648.5','FeI 15652.9']
+    NumeroLineas = len(LineName)
+    MainFile = 'data.per'
+    Color2 = 'm'
+    Color1='k'
 
-	YRANGEMAX = np.array([1.1,3.,3.,3.,3.])
-	YRANGEMIN = -YRANGEMAX; YRANGEMIN[0] = 0
-
-
-	# Abrimos los ficheros:
-	x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
-
-	if nL == 1:
-
-		x0 = np.array(x0)
-		StokeI0=stokes0[0]
-		StokeQ0=stokes0[1]
-		StokeU0=stokes0[2]
-		StokeV0=stokes0[3]
-
-		x, stokes, [nL,posi,nN] = lperfil(filename)
-
-		x = np.array(x)
-		StokeI=stokes[0]
-		StokeQ=stokes[1]
-		StokeU=stokes[2]
-		StokeV=stokes[3]
-
-	lennN = len(nN)
-	NumeroLineas = nL
-	PosiNn0T = list(posi); PosiNn0T.append(lennN-1)
-	PosiNn1T = list(posi); PosiNn1T.append(lennN-1)
-	x0A=x0/1000.
-	xA=x/1000.
+    YRANGEMAX = np.array([1.1,3.,3.,3.,3.])
+    YRANGEMIN = -YRANGEMAX; YRANGEMIN[0] = 0
 
 
-	sParam = 4
-	plt.figure(figsize=(15,5))
-	for Index in range(0,NumeroLineas):
-		
-		plt.subplot(NumeroLineas,sParam,Index+1)
-		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],StokeI0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-		plt.tick_params(axis='y', direction='in')
-		plt.tick_params(axis='x', direction='in')
-		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-		plt.ylabel(r'$I/I_c$', fontsize=15)
-		plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-		plt.ylim(YRANGEMIN[0],YRANGEMAX[0])
-		plt.grid(alpha=0.2,linestyle='-')
-		plt.locator_params(axis = 'x', nbins = 4)
-		plt.locator_params(axis = 'y', nbins = 6)
+    # Abrimos los ficheros:
+    x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
+
+    if nL == 1:
+
+        x0 = np.array(x0)
+        StokeI0=stokes0[0]
+        StokeQ0=stokes0[1]
+        StokeU0=stokes0[2]
+        StokeV0=stokes0[3]
+
+        x, stokes, [nL,posi,nN] = lperfil(filename)
+
+        x = np.array(x)
+        StokeI=stokes[0]
+        StokeQ=stokes[1]
+        StokeU=stokes[2]
+        StokeV=stokes[3]
+
+    lennN = len(nN)
+    NumeroLineas = nL
+    PosiNn0T = list(posi); PosiNn0T.append(lennN-1)
+    PosiNn1T = list(posi); PosiNn1T.append(lennN-1)
+    x0A=x0/1000.
+    xA=x/1000.
 
 
-		plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
-		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeQ0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-		plt.tick_params(axis='y', direction='in')
-		plt.tick_params(axis='x', direction='in')
-		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-		plt.ylabel(r'$Q/I_c$ $[\%]$', fontsize=15)
-		plt.ylim(YRANGEMIN[1],YRANGEMAX[1])
-		plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-		plt.grid(alpha=0.2,linestyle='-')
-		plt.locator_params(axis = 'x', nbins = 4)
-		plt.locator_params(axis = 'y', nbins = 6)
+    sParam = 4
+    plt.figure(figsize=(15,5))
+    for Index in range(0,NumeroLineas):
+        
+        plt.subplot(NumeroLineas,sParam,Index+1)
+        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],StokeI0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
+        plt.tick_params(axis='y', direction='in')
+        plt.tick_params(axis='x', direction='in')
+        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
+        plt.ylabel(r'$I/I_c$', fontsize=15)
+        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
+        plt.ylim(YRANGEMIN[0],YRANGEMAX[0])
+        plt.grid(alpha=0.2,linestyle='-')
+        plt.locator_params(axis = 'x', nbins = 4)
+        plt.locator_params(axis = 'y', nbins = 6)
+
+
+        plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
+        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeQ0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
+        plt.tick_params(axis='y', direction='in')
+        plt.tick_params(axis='x', direction='in')
+        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
+        plt.ylabel(r'$Q/I_c$ $[\%]$', fontsize=15)
+        plt.ylim(YRANGEMIN[1],YRANGEMAX[1])
+        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
+        plt.grid(alpha=0.2,linestyle='-')
+        plt.locator_params(axis = 'x', nbins = 4)
+        plt.locator_params(axis = 'y', nbins = 6)
 
 
 
-		plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
-		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeU0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-		plt.tick_params(axis='y', direction='in')
-		plt.tick_params(axis='x', direction='in')
-		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-		plt.ylabel(r'$U/I_c$ $[\%]$', fontsize=15)
-		plt.grid(alpha=0.2,linestyle='-')
-		plt.locator_params(axis = 'x', nbins = 4)
-		plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-		plt.ylim(YRANGEMIN[2],YRANGEMAX[2])
-		plt.locator_params(axis = 'y', nbins = 6)
+        plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
+        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeU0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
+        plt.tick_params(axis='y', direction='in')
+        plt.tick_params(axis='x', direction='in')
+        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
+        plt.ylabel(r'$U/I_c$ $[\%]$', fontsize=15)
+        plt.grid(alpha=0.2,linestyle='-')
+        plt.locator_params(axis = 'x', nbins = 4)
+        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
+        plt.ylim(YRANGEMIN[2],YRANGEMAX[2])
+        plt.locator_params(axis = 'y', nbins = 6)
 
-		
-
-
-		plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
-		plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeV0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-		plt.tick_params(axis='y', direction='in')
-		plt.tick_params(axis='x', direction='in')
-		plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-		plt.ylabel(r'$V/I_c$ $[\%]$', fontsize=15)
-		plt.ylim(YRANGEMIN[3],YRANGEMAX[3])
-		plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-		plt.grid(alpha=0.2,linestyle='-')
-		plt.locator_params(axis = 'x', nbins = 4)
-		plt.locator_params(axis = 'y', nbins = 6)
+        
 
 
-	# ========================================================================================================
+        plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
+        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeV0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
+        plt.tick_params(axis='y', direction='in')
+        plt.tick_params(axis='x', direction='in')
+        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
+        plt.ylabel(r'$V/I_c$ $[\%]$', fontsize=15)
+        plt.ylim(YRANGEMIN[3],YRANGEMAX[3])
+        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
+        plt.grid(alpha=0.2,linestyle='-')
+        plt.locator_params(axis = 'x', nbins = 4)
+        plt.locator_params(axis = 'y', nbins = 6)
 
-		plt.subplot(NumeroLineas,sParam,Index+1)
-		plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],StokeI[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
 
-		plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
-		plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeQ[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
+    # ========================================================================================================
+
+        plt.subplot(NumeroLineas,sParam,Index+1)
+        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],StokeI[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
+
+        plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
+        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeQ[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
 
 
-		plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
-		plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeU[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
+        plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
+        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeU[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
 
-		plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
-		plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeV[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
+        plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
+        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeV[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
 
-	# ========================================================================================================
+    # ========================================================================================================
 
-	plt.tight_layout()
+    plt.tight_layout()
 
-	plt.savefig('P'+filename[0:-4]+'.pdf', bbox_inches='tight')#, pad_inches=0)
-	print('P'+filename[0:-4]+'.pdf'+':: SAVED')
+    plt.savefig('P'+filename[0:-4]+'.pdf', bbox_inches='tight')#, pad_inches=0)
+    print('P'+filename[0:-4]+'.pdf'+':: SAVED')
 
-	return
+    return
 
 #=============================================================================
 def plotmfit():
@@ -326,7 +348,7 @@ def plotmfit():
 	#; 0:= temp , 1:= pres, 2:= vmic, 3:= B, 4:= vlos 5:=gamma
 	PosiPlot = [0,3,4,5]
 
-	LabelPlot= ['$T$ $[kK]$',r'$P_e$'+' [dyn cm^-3]',r'$v_{mic}$'+' [km/s]','$B$ $[kG]$',r'$v_{LOS}$'+' $[km/s]$',r'$\gamma$ $[deg]$']
+	LabelPlot= ['$T$ $[K]$',r'$P_e$'+' [dyn cm^-3]',r'$v_{mic}$'+' [cm/s]','$B$ $[G]$',r'$v_{LOS}$'+' $[m/s]$',r'$\gamma$ $[deg]$']
 	TEXTAU = r'$\tau$'
 
 	NumPlots = len(PosiPlot)

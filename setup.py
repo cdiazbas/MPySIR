@@ -63,7 +63,7 @@ rango = range(0,401) # Range to invert
 modeloInit = 'hsraB.mod'
 modeloFin = 'hsraB_3.mod'
 # sirmode = 'gammVaddFullProfile'
-sirmode = 'continue'
+sirmode = 'perPixel' # 'continue'
 continuemodel = 'finalSIR_model.npy'
 
 chi2map = True
@@ -79,7 +79,7 @@ Nodes_LOSvelocity = '1,2,3'
 Nodes_gamma = '1,1,2'
 Nodes_phi = '1,1,2'
 Invert_macroturbulence = '0'
-
+Initial_vmacro = 0.0 # km/s
 
 
 
@@ -94,10 +94,15 @@ x = (xlambda[rango] -lambdaRef)*1e3  # Wavelength in mA
 
 # Updates malla.grid and sir.trol if master:
 if comm.rank == 0:
+    
     # Modify the "malla.grid" file to change the wavelength range.
     sirutils.modify_malla(dictLines, x)
+    
     # Modify the "sir.trol" file to change the inversion parameters.
     sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence)
+
+    # Modify the initial model with the initial macro velocity:
+    sirutils.modify_vmacro(Initial_vmacro)
 
 
 # Now only the master node reads the data and broadcasts it to the rest of the nodes:

@@ -71,7 +71,9 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
 
 
 
-inversion_model = 'finalSIR_model_smoothed.npy'
+# inversion_model = 'finalSIR_model_smoothed.npy'
+inversion_model = 'finalSIR_cycle1_model.npy'
+# inversion_model = 'finalSIR_model.npy'
 index = 14 # Corresponds to logtau = 0.0
 for parameter in range(12):
     plot1map(index,parameter, inversion_model = inversion_model)

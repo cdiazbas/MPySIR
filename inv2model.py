@@ -105,6 +105,6 @@ def create_modelmap(inversion_file, npar = 12):
     
 
 if __name__ == "__main__":
-    filename = 'finalSIR.npy'
+    filename = 'finalSIR_cycle1.npy'
     create_modelmap(filename)
     create_profilemap(filename)
