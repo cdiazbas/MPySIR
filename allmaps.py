@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+This module contains functions to plot the inversion results.
+"""
+
 
 # ========================= PHI colormap
 import matplotlib.colors as mcolors
@@ -27,7 +31,7 @@ def corrphi(azimuthmap):
     return
 
 # ========================= PLOT 1 MAP
-def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
+def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra=''):
 
     cmapArray = ['gray','gray','gray','bone','bone','seismic','Spectral_r',phimap,'bone','gray','gray','cubehelix']
     magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$','p',r'${\rm v\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v\ [cm/s]}$',r'${\rm \gamma\ [d]}$',r'${\rm \phi\ [d]}$','vmacro','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
@@ -35,7 +39,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
 
     # ========================= MAP
     # Load the inversion model
-    inversion_model = np.load(inversion_model)
+    inversion_model = np.load(inversion_model, allow_pickle=True)
     param2plot = inversion_model[:,:,indexlogTau,parameter]
     
     # Print the logtau value at that index:
@@ -54,6 +58,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
     if parameter == 7: vmaxi = 180.;vmini = 0.
     if parameter == 11: vmaxi = np.mean(param2plot)+6*np.std(param2plot); vmini = 0.
     if parameter == 5: vmini = np.mean(param2plot)-4*np.std(param2plot); vmaxi = -vmini
+    if parameter == 11: vmini = 0.0; vmaxi = 30.0
 
     # Plot the map associated to the parameter:
     plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='None',vmin=vmini,vmax=vmaxi)
@@ -63,17 +68,21 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy'):
     loglabel = r'${\rm log(\tau)=}$'
     cb.set_label(r""+magTitle[parameter]+r", "+loglabel+"{0}".format(logTau), labelpad=8., y=0.5, fontsize=12.)
 
-    plt.savefig(magFile[parameter]+'_log{0:02.2f}.pdf'.format(logTau), bbox_inches='tight')
-    print(magFile[parameter]+'_log{0:02.2f}.pdf SAVE'.format(logTau))
+    plt.savefig(magFile[parameter]+'_log{0:02.2f}{1}.pdf'.format(logTau,extra), bbox_inches='tight')
+    
+    print(magFile[parameter]+'_log{0:02.2f}{1}.pdf SAVE'.format(logTau,extra))
     print('-----------------------'+str(parameter))
     plt.clf()
 
 
 
 
-# inversion_model = 'finalSIR_model_smoothed.npy'
 inversion_model = 'finalSIR_cycle1_model.npy'
+# inversion_model = 'finalSIR_cycle1_model.npy'
 # inversion_model = 'finalSIR_model.npy'
-index = 14 # Corresponds to logtau = 0.0
-for parameter in range(12):
-    plot1map(index,parameter, inversion_model = inversion_model)
+extra = '_cycle1'
+index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
+
+rangeparams = [1,2,4,5,6,7,11]
+for parameter in rangeparams:
+    plot1map(index,parameter, inversion_model = inversion_model, extra=extra)

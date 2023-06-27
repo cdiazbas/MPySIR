@@ -8,7 +8,7 @@ before using it in the next cycle.
 """
 
 # ====================================================================
-def smooth(fileinput, fwhm_gaussian=0.0, size_median=0):
+def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed'):
     """
     It smooths the inversion results using a gaussian filter and/or a median filter.
     """
@@ -20,6 +20,12 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0):
     from scipy.ndimage import gaussian_filter, median_filter
 
     # The inversion model has dimensions:  [ny, nx, ntau, npar]
+
+
+    # Before smoothing, we need to make sure that the parameters are within the limits:
+    par = 6 # The inclination angle
+    inversion_model[:, :, :, par] = np.clip(inversion_model[:, :, :, par], 0.0, 180.0)
+            
 
     # Run the smoothing for all optical depths for all parameters:
     for tau in tqdm(range(inversion_model.shape[2])):
@@ -50,16 +56,17 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0):
                     inversion_model[:, :, tau, par] = gaussian_filter(inversion_model[:, :, tau, par], fwhm_gaussian)
                 if size_median > 0:
                     inversion_model[:, :, tau, par] = median_filter(inversion_model[:, :, tau, par], size_median)
-                                
+                
+               
                 
     # Save the smoothed model adding the suffix '_smoothed':
-    np.save(fileinput[:-4]+'_smoothed.npy', inversion_model)
+    np.save(fileinput[:-4]+suffix, inversion_model)
 
 
 
 if __name__ == "__main__":
-    fileinput = 'finalSIR_model.npy'
-    fwhm_gaussian = 2.0
+    fileinput = 'finalSIR_cycle2_model.npy'
+    fwhm_gaussian = 1.0
     size_median = 0
-    smooth(fileinput, fwhm_gaussian, size_median)
+    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed')
     

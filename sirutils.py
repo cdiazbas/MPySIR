@@ -1,29 +1,26 @@
-###############################################################
-#  MPySIR: MPI python script for SIR
-#
-#  SCRIPT: sirutils.py
-###############################################################
-
-
 from mpi4py import MPI
-from sirtools import lmodel8, wmodel8
+from sirtools import lmodel8, wmodel8, wmodel12
 from sirtools import lperfil
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+"""
+This module contains functions to run SIR and modify the SIR files.
+"""
+
 
 #=============================================================================
 def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
-
+    """
+    Runs SIR for a given pixel.
+    """
+    
+    # By default, we use 3 cycles so the final name of the model is hsraB_3.mod
     finalProfile = 'hsraB_3.per'
 
     if sirmode == 'gammaV' or sirmode == 'gammVaddFullProfile':
         gammaV()
-
-    if sirmode == 'medianFilter':
-        medianFilter(fila, columna)
-
 
     # We run SIR
     import os
@@ -143,9 +140,32 @@ def modify_vmacro(initial_vmacro):
     
     
 
+#=============================================================================
+def write_continue_model(tau_init, model_init, continue_model, final_filename='hsraB.mod'):
+    """
+    Writes an input model (from a previous inversion) to be used as a starting model
+    """
+    # Modify the model:
+    model_init[0] = continue_model[:,1] # temperature
+    model_init[1] = continue_model[:,2] # electron pressure
+    model_init[2] = continue_model[:,3] # microturbulence
+    model_init[3] = continue_model[:,4] # magnetic field
+    model_init[4] = continue_model[:,5] # LOS velocity
+    model_init[5] = continue_model[:,6] # inclination
+    model_init[6] = continue_model[:,7] # azimuth
+    model_init[7] = continue_model[0,8] # macro velocity
+    model_init[8] = continue_model[0,9] # filling factor
+    model_init[9] = continue_model[0,10] # stray light
+    wmodel12([tau_init, model_init], 'hsraB.mod', verbose=False)
+
+
+
 
 #=============================================================================
 def addFullProfile(sirfile):
+    """
+    Having the option of synthetic profiles with other properties
+    """
 	import os
 	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
 
@@ -204,216 +224,119 @@ def getTerminalSize():
 	return int(cr[1]), int(cr[0])
 
 
-#=============================================================================
-def plotper():
+# ========================================================================================================
+def plotper(main_file='data.per',
+            synth_file='hsraB_3.per',
+            color1='k',
+            color2='m',
+            y_range_max=np.array([1.1, 3., 3., 3., 3.])):
     """
-    Plots the observed and synthetic profiles.
+    Plot the observed and synthetic profiles.
     """
 
-    filename='hsraB_3.per'
-    LineName = ['FeI 6301.5']#,'FeI 6302.5','SiI 10827.1','FeI 15648.5','FeI 15652.9']
-    NumeroLineas = len(LineName)
-    MainFile = 'data.per'
-    Color2 = 'm'
-    Color1='k'
+    y_range_min = -y_range_max
+    y_range_min[0] = 0
 
-    YRANGEMAX = np.array([1.1,3.,3.,3.,3.])
-    YRANGEMIN = -YRANGEMAX; YRANGEMIN[0] = 0
+    # Load data
+    x0, stokes0, [num_lines, pos, num_points] = lperfil(main_file)
+    if num_lines == 1:
+        x, stokes, [_, _, _] = lperfil(synth_file)
 
+    # Prepare positions for slicing
+    pos_new = list(pos) + [len(num_points) - 1]
+    x0A, xA = np.array(x0) / 1000., np.array(x) / 1000.
 
-    # Abrimos los ficheros:
-    x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
+    # Initialize the figure
+    plt.figure(figsize=(15, 5 * num_lines))
 
-    if nL == 1:
+    # Iterate through lines and Stokes parameters
+    for line_idx in range(num_lines):
+        for sParam in range(4):
+            plt_idx = line_idx * 4 + sParam + 1
+            plt.subplot(num_lines, 4, plt_idx)
 
-        x0 = np.array(x0)
-        StokeI0=stokes0[0]
-        StokeQ0=stokes0[1]
-        StokeU0=stokes0[2]
-        StokeV0=stokes0[3]
+            # Plot the main data
+            x_range = slice(pos_new[line_idx], pos_new[line_idx + 1] - 1)
+            data = stokes0[sParam][x_range]
+            if sParam > 0:  # Apply scaling factor of 100 to Q, U, and V parameters
+                data = data * 100
+            plt.plot(x0A[x_range], data, color1, lw=1.0)
 
-        x, stokes, [nL,posi,nN] = lperfil(filename)
+            # Customize the plot
+            plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
+            plt.ylabel(['I/Ic', 'Q/Ic [%]', 'U/Ic [%]', 'V/Ic [%]'][sParam], fontsize=15)
+            plt.xlim(x0A[pos_new[line_idx]], x0A[pos_new[line_idx + 1] - 1])
+            plt.ylim(y_range_min[sParam], y_range_max[sParam])
+            plt.grid(alpha=0.2, linestyle='-')
+            plt.locator_params(axis='both', nbins=4)
 
-        x = np.array(x)
-        StokeI=stokes[0]
-        StokeQ=stokes[1]
-        StokeU=stokes[2]
-        StokeV=stokes[3]
+            # Plot synthetic profiles
+            synth_data = stokes[sParam][x_range]
+            if sParam > 0:  # Apply scaling factor of 100 to Q, U, and V parameters
+                synth_data = synth_data * 100
+            plt.plot(xA[x_range], synth_data, color2, lw=1.0)
 
-    lennN = len(nN)
-    NumeroLineas = nL
-    PosiNn0T = list(posi); PosiNn0T.append(lennN-1)
-    PosiNn1T = list(posi); PosiNn1T.append(lennN-1)
-    x0A=x0/1000.
-    xA=x/1000.
-
-
-    sParam = 4
-    plt.figure(figsize=(15,5))
-    for Index in range(0,NumeroLineas):
-        
-        plt.subplot(NumeroLineas,sParam,Index+1)
-        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],StokeI0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-        plt.tick_params(axis='y', direction='in')
-        plt.tick_params(axis='x', direction='in')
-        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-        plt.ylabel(r'$I/I_c$', fontsize=15)
-        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-        plt.ylim(YRANGEMIN[0],YRANGEMAX[0])
-        plt.grid(alpha=0.2,linestyle='-')
-        plt.locator_params(axis = 'x', nbins = 4)
-        plt.locator_params(axis = 'y', nbins = 6)
-
-
-        plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
-        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeQ0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-        plt.tick_params(axis='y', direction='in')
-        plt.tick_params(axis='x', direction='in')
-        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-        plt.ylabel(r'$Q/I_c$ $[\%]$', fontsize=15)
-        plt.ylim(YRANGEMIN[1],YRANGEMAX[1])
-        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-        plt.grid(alpha=0.2,linestyle='-')
-        plt.locator_params(axis = 'x', nbins = 4)
-        plt.locator_params(axis = 'y', nbins = 6)
-
-
-
-        plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
-        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeU0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-        plt.tick_params(axis='y', direction='in')
-        plt.tick_params(axis='x', direction='in')
-        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-        plt.ylabel(r'$U/I_c$ $[\%]$', fontsize=15)
-        plt.grid(alpha=0.2,linestyle='-')
-        plt.locator_params(axis = 'x', nbins = 4)
-        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-        plt.ylim(YRANGEMIN[2],YRANGEMAX[2])
-        plt.locator_params(axis = 'y', nbins = 6)
-
-        
-
-
-        plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
-        plt.plot(x0A[PosiNn0T[Index]:PosiNn0T[Index+1]-1],100*StokeV0[PosiNn0T[Index]:PosiNn0T[Index+1]-1],Color1,lw=1.0)
-        plt.tick_params(axis='y', direction='in')
-        plt.tick_params(axis='x', direction='in')
-        plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-        plt.ylabel(r'$V/I_c$ $[\%]$', fontsize=15)
-        plt.ylim(YRANGEMIN[3],YRANGEMAX[3])
-        plt.xlim(x0A[PosiNn0T[Index]],x0A[PosiNn0T[Index+1]-1])
-        plt.grid(alpha=0.2,linestyle='-')
-        plt.locator_params(axis = 'x', nbins = 4)
-        plt.locator_params(axis = 'y', nbins = 6)
-
-
-    # ========================================================================================================
-
-        plt.subplot(NumeroLineas,sParam,Index+1)
-        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],StokeI[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
-
-        plt.subplot(NumeroLineas,sParam,Index+1+NumeroLineas)
-        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeQ[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
-
-
-        plt.subplot(NumeroLineas,sParam,Index+2+NumeroLineas)
-        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeU[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
-
-        plt.subplot(NumeroLineas,sParam,Index+3+NumeroLineas)
-        plt.plot(xA[PosiNn1T[Index]:PosiNn1T[Index+1]-1],100*StokeV[PosiNn1T[Index]:PosiNn1T[Index+1]-1],Color2,lw=1.0)
-
-    # ========================================================================================================
-
+    # Save the figure
     plt.tight_layout()
+    output_file = 'P' + synth_file[:-4] + '.pdf'
+    plt.savefig(output_file, bbox_inches='tight')
+    print(output_file + ':: SAVED')
 
-    plt.savefig('P'+filename[0:-4]+'.pdf', bbox_inches='tight')#, pad_inches=0)
-    print('P'+filename[0:-4]+'.pdf'+':: SAVED')
 
-    return
+
 
 #=============================================================================
-def plotmfit():
-# def plotmfit(initModel,outModel,errorModel=False,whichMag,verbose=False):
-	import matplotlib.pyplot as plt
-	import os
-	import numpy as np
+def plotmfit(main_file='hsraB.mod',
+             synth_file='hsraB_3.mod',
+             error_model=True,
+             indices_to_plot=[0, 3, 4, 5],
+             labels=['$T$ $[K]$', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ $[G]$', r'$v_{LOS}$' + ' $[m/s]$', r'$\gamma$ $[deg]$'],
+             color1='k',
+             color2='m',
+             margin=[0.2, 0.3, 0.3, 0.3]):
+    """
+    Plot the initial and final model parameters.
+    """
 
-	# import seaborn as sns
-	# sns.set_style("ticks")
+    num_plots = len(indices_to_plot)
 
-	filename =  'hsraB_3.mod'
-	errorModel = True
-	#====================================================================
+    # Load data
+    tau, data = lmodel8(main_file, verbose=False)
+    tau2, data2 = lmodel8(synth_file, verbose=False)
+    if error_model:
+        _, error_data = lmodel8(synth_file[:-4] + '.err')
 
-	#; 0:= temp , 1:= pres, 2:= vmic, 3:= B, 4:= vlos 5:=gamma
-	PosiPlot = [0,3,4,5]
+    plt.figure(figsize=(4 * num_plots, 5))
 
-	LabelPlot= ['$T$ $[K]$',r'$P_e$'+' [dyn cm^-3]',r'$v_{mic}$'+' [cm/s]','$B$ $[G]$',r'$v_{LOS}$'+' $[m/s]$',r'$\gamma$ $[deg]$']
-	TEXTAU = r'$\tau$'
+    for i, index in enumerate(indices_to_plot):
+        # Plot the data
+        plt.subplot(1, num_plots, i + 1)
+        quantity0, quantity1 = data[index], data2[index]
+        plt.plot(tau, quantity0, color1, lw=1.0)
+        plt.plot(tau2, quantity1, color2, lw=1.0)
 
-	NumPlots = len(PosiPlot)
+        # Plot the error model data
+        if error_model:
+            error_quantity = error_data[index]
+            plt.fill_between(tau2, quantity1 - error_quantity, quantity1 + error_quantity, facecolor='m', alpha=0.2)
 
-	MainFile = 'hsraB.mod'
+        # Set the limits for x and y axes with margin adjustment
+        min_val, max_val = min(min(quantity0), min(quantity1)), max(max(quantity0), max(quantity1))
+        margin_adjustment = abs(min_val - max_val) * margin[i]
+        plt.gca().update(dict(xlim=(min(tau2), max(tau2)), ylim=(min_val - margin_adjustment, max_val + margin_adjustment)))
 
-	Color1='k'
-	Color2 = 'm'
+        # Customize the plot
+        plt.tick_params(axis='both', direction='in')
+        plt.xlabel(r'$log(\tau)$', fontsize=20)
+        plt.ylabel(labels[index], fontsize=20)
+        plt.locator_params(axis='both', nbins=4)
+        plt.grid(alpha=0.2, linestyle='-')
 
-
-	tau, TodoPlot = lmodel8(MainFile,verbose=False)
-	tau2, TodoPlot2 = lmodel8(filename,verbose=False)
-
-
-	if errorModel:
-		ERRtau2, TodoPlot3 = lmodel8(filename[0:-4]+'.err')
-
-
-
-	MMargen=[0.2,0.3,0.3,0.3]
-
-	plt.figure(figsize=(4*NumPlots,5))
-	for i in range(0,len(PosiPlot)):
-		
-		plt.subplot(1,len(PosiPlot),i+1)
-		Cantidad0=TodoPlot[PosiPlot[i]]
-		Cantidad1=TodoPlot2[PosiPlot[i]]
-		plt.plot(tau,Cantidad0,Color1,lw=1.0)
-		plt.plot(tau2,Cantidad1,Color2,lw=1.0)
-		
-		if errorModel:
-			ERRCantidad1=TodoPlot3[PosiPlot[i]]
-			plt.fill_between(tau2, Cantidad1-ERRCantidad1, Cantidad1+ERRCantidad1,facecolor='m', alpha=0.2)
-		#ylim(YRANGEMIN[Index],YRANGEMAX[Index])
-		plt.xlim(min(tau2),max(tau2))
-		
-		Min0 = min(Cantidad0)
-		Min1 = min(Cantidad1)
-		Max0 = max(Cantidad0)
-		Max1 = max(Cantidad1)
-
-		if Min0 == Min1 : MinAbs = Min0
-		if Min0 != Min1 : MinAbs = min([Min0,Min1])
-		if Max0 == Max1 : MaxAbs = Max0
-		if Max0 != Max1 : MaxAbs = max([Max0,Max1])
-		NuevoMargen= abs(MinAbs-MaxAbs)*MMargen[i]
-		plt.ylim(MinAbs-NuevoMargen,MaxAbs+NuevoMargen)
-		#ylim(0.,2.5)
-
-		plt.tick_params(axis='y', direction='in')#,labelsize=20)
-		plt.tick_params(axis='x', direction='in')#,labelsize=20)
-		plt.xlabel(r'$log(\tau)$', fontsize=20)
-		plt.ylabel(LabelPlot[PosiPlot[i]], fontsize=20)
-		plt.locator_params(axis = 'y', nbins = 6)
-		plt.locator_params(axis = 'x', nbins = 4)
-		plt.grid(alpha=0.2,linestyle='-')
-
-
-
-	plt.tight_layout()
-	# plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.4, hspace=0.3)
-
-	plt.savefig('M'+filename[0:-4]+'.pdf', bbox_inches='tight')#, pad_inches=0)
-	print('M'+filename[0:-4]+'.pdf'+':: GUARDADO')
-	return
+    # Save the figure
+    plt.tight_layout()
+    output_file = 'M' + synth_file[:-4] + '.pdf'
+    plt.savefig(output_file, bbox_inches='tight')
+    print(output_file + ':: SAVED')
 
 
 #=============================================================================
@@ -425,6 +348,9 @@ def cerca(number, array):
 
 #=============================================================================
 def gammaV():
+    """
+    Compute the inclination from the Stokes V profile to have a good guess
+    """
 	from scipy import integrate
 	from scipy.interpolate import interp1d
 

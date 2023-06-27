@@ -30,7 +30,7 @@ Nodes for phi 2              :0
 Invert macroturbulence 2?    :0                 ! (0 or blank=no, 1=yes)
 Invert filling factor?       :0                 ! (0 or blank=no, 1=yes)
 Invert stray light factor?   :0                 ! (0 or blank=no, 1=yes)
-mu=cos (theta)               :0.92              ! (DEFAULT: mu=1. mu<0 => West)
+mu=cos (theta)               :1.0              ! (DEFAULT: mu=1. mu<0 => West)
 Estimated S/N for I          :200               ! (DEFAULT: 1000)
 Continuum contrast           :                  ! (DEFAULT: not used)
 Tolerance for SVD            :                  ! (DEFAULT value: 1e-4)

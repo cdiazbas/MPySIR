@@ -9,27 +9,55 @@ synthetic profiles.
 """
 
 
+
 # ====================================================================
 def readSIRMap(outputSir, parameter, tau):
     """
     It returns the map of a given parameter from the inversion at a given optical depth
     """
-    cont = 0
-    heightMap = outputSir[-1][-1][0][0]+1
-    widthMap = outputSir[-1][-1][0][1]+1
-    mapa = np.zeros((widthMap, heightMap))
-    for fila in range(0, heightMap):
-        for columna in range(0, widthMap):
-            punto = cont % outputSir.shape[1]
-            veces = int(cont/outputSir.shape[1])
+    heightMap = outputSir.shape[0]
+    widthMap = outputSir.shape[1]
+    parmap = np.zeros((widthMap, heightMap))
+    for pix_y in range(0, heightMap):
+        for pix_x in range(0, widthMap):
             # For vmac, fill, stray and chi2 we need to take the first value
             if parameter == 8 or parameter == 9 or parameter == 10 or parameter == 11:
-                mapa[columna,fila] = outputSir[veces][punto][1][0][parameter]
+                parmap[pix_y,pix_x] = outputSir[pix_y,pix_x][1][0][parameter]
             else:
-                mapa[columna,fila] = outputSir[veces][punto][1][0][parameter][tau]
-            cont += 1
-    return mapa.T
+                parmap[pix_y,pix_x] = outputSir[pix_y,pix_x][1][0][parameter][tau]
+    return parmap#.T
 
+
+
+# ====================================================================
+def create_modelmap(inversion_file, npar = 12):
+    """
+    It creates a file with the model parameters [ny, nx, ntau, npar] from the inversion 
+    """
+    # Read the inversion file:
+    inversion = np.load(inversion_file,allow_pickle=True)
+    
+    # It should have the shape: [ny, nx, ntau, npar]
+    logtau = inversion[0,0][1][0][0]
+    ntau = len(logtau)
+    
+    # The height and width of the map:
+    ny = inversion.shape[0]
+    nx = inversion.shape[1]
+    
+    # Create the file:
+    modelmap = np.zeros((nx, ny, ntau, npar))
+    for tau in tqdm(range(ntau)):
+        for par in tqdm(range(npar), leave=False):
+            modelmap[:, :, tau, par] = readSIRMap(inversion, par, tau)
+            
+    # Before smoothing, we need to make sure that the parameters are within the limits:
+    par = 6 # The inclination angle
+    modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
+        
+    # Save the file:
+    np.save(inversion_file[:-4]+'_model.npy', modelmap)
+    
 
 # ====================================================================
 def readSIRProfileMap(outputSir, Nstoke):
@@ -37,25 +65,15 @@ def readSIRProfileMap(outputSir, Nstoke):
     It returns the synthetic profiles from the inversion for a given Stokes parameter
     """
     cont = 0
-    [height, width, rangoLambda] = shapeSIRMap(outputSir)
-    synMapa = np.zeros((width, height, rangoLambda))
-    for fila in range(0, height):
-        for columna in range(0, width):
-            punto = cont % outputSir.shape[1]
-            veces = int(cont/outputSir.shape[1])
-            synMapa[columna, fila, :] = outputSir[veces][punto][2][1][Nstoke][:]
-            cont += 1
-    return synMapa
+    ny = outputSir.shape[0]
+    nx = outputSir.shape[1]
+    nwav = len(outputSir[0,0][2][0])
+    syn_map = np.zeros((ny, nx, nwav))
+    for ypix in range(0, ny):
+        for xpix in range(0, nx):
+            syn_map[ypix, xpix, :] = outputSir[ypix,xpix][2][1][Nstoke]
+    return syn_map
 
-# ====================================================================
-def shapeSIRMap(resultadoSir):
-    """
-    It returns the shape of the SIR map
-    """
-    height = resultadoSir[-1][-1][0][0]+1
-    width  = resultadoSir[-1][-1][0][1]+1
-    nlambda = len(resultadoSir[0][0][2][1][0])
-    return [height, width, nlambda]
 
 
 # ====================================================================
@@ -67,7 +85,9 @@ def create_profilemap(inversion_file):
     inversion = np.load(inversion_file,encoding='latin1',allow_pickle=True)
 
     # It should have the shape: [ny, nx, nwav, nstokes]
-    [ny, nx, nwav] = shapeSIRMap(inversion)
+    ny = inversion.shape[0]
+    nx = inversion.shape[1]
+    nwav = inversion[0,0][2][0].shape[0]
     
     # Create the file:
     profilemap = np.zeros((nx, ny, nwav, 4))
@@ -78,33 +98,10 @@ def create_profilemap(inversion_file):
     np.save(inversion_file[:-4]+'_profiles.npy', profilemap)
 
 
-# ====================================================================
-def create_modelmap(inversion_file, npar = 12):
-    """
-    It creates a file with the model parameters [ny, nx, ntau, npar] from the inversion 
-    """
-    # Read the inversion file:
-    inversion = np.load(inversion_file,encoding='latin1',allow_pickle=True)
-    
-    # It should have the shape: [ny, nx, ntau, npar]
-    logtau = inversion[0][0][1][0][0]
-    ntau = len(logtau)
-    
-    # The height and width of the map:
-    ny = inversion.shape[0]*(inversion[0][-1][0][0]+1)
-    nx = (inversion[0][-1][0][1]+1)
-    
-    # Create the file:
-    modelmap = np.zeros((nx, ny, ntau, npar))
-    for tau in tqdm(range(ntau)):
-        for par in tqdm(range(npar), leave=False):
-            modelmap[:, :, tau, par] = readSIRMap(inversion, par, tau)
-    
-    # Save the file:
-    np.save(inversion_file[:-4]+'_model.npy', modelmap)
-    
+
 
 if __name__ == "__main__":
+
     filename = 'finalSIR_cycle1.npy'
     create_modelmap(filename)
     create_profilemap(filename)
