@@ -9,7 +9,6 @@ synthetic profiles.
 """
 
 
-
 # ====================================================================
 def readSIRMap(outputSir, parameter, tau):
     """
@@ -22,11 +21,10 @@ def readSIRMap(outputSir, parameter, tau):
         for pix_x in range(0, widthMap):
             # For vmac, fill, stray and chi2 we need to take the first value
             if parameter == 8 or parameter == 9 or parameter == 10 or parameter == 11:
-                parmap[pix_y,pix_x] = outputSir[pix_y,pix_x][1][0][parameter]
+                parmap[pix_x, pix_y] = outputSir[pix_y,pix_x][1][0][parameter]
             else:
-                parmap[pix_y,pix_x] = outputSir[pix_y,pix_x][1][0][parameter][tau]
-    return parmap#.T
-
+                parmap[pix_x, pix_y] = outputSir[pix_y,pix_x][1][0][parameter][tau]
+    return parmap.T
 
 
 # ====================================================================
@@ -46,7 +44,7 @@ def create_modelmap(inversion_file, npar = 12):
     nx = inversion.shape[1]
     
     # Create the file:
-    modelmap = np.zeros((nx, ny, ntau, npar))
+    modelmap = np.zeros((ny, nx, ntau, npar))
     for tau in tqdm(range(ntau)):
         for par in tqdm(range(npar), leave=False):
             modelmap[:, :, tau, par] = readSIRMap(inversion, par, tau)
@@ -75,7 +73,6 @@ def readSIRProfileMap(outputSir, Nstoke):
     return syn_map
 
 
-
 # ====================================================================
 def create_profilemap(inversion_file):
     """
@@ -90,13 +87,12 @@ def create_profilemap(inversion_file):
     nwav = inversion[0,0][2][0].shape[0]
     
     # Create the file:
-    profilemap = np.zeros((nx, ny, nwav, 4))
+    profilemap = np.zeros((ny, nx, nwav, 4))
     for stoke in tqdm(range(4)):
         profilemap[:, :, :, stoke] = readSIRProfileMap(inversion, stoke)
     
     # Save the file:
     np.save(inversion_file[:-4]+'_profiles.npy', profilemap)
-
 
 
 

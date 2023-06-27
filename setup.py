@@ -32,6 +32,7 @@ import sys
 import time
 import datetime
 
+
 # ================================================= MPI INIT - CLEAN
 comm = MPI.COMM_WORLD
 widthT = 1
@@ -48,19 +49,19 @@ if comm.rank == 0:
 comm.Barrier()
 
 
-
 # ================================================= INPUT
-imagefits = '../../data/test_field_1_630_0.fits'
+imagefits = '../../data/sunspot_jmb_sir_synth.fits'
 original_axis = 'ns nw ny nx'
 fov = None #'4,4' # We extract a 20x20 pixels for the inversion
+skip = 8 # We skip pixels in the 2D grid to reduce the number of pixels
 
 wavefile = '../../data/wav.npy'
 dictLines = {'atom':'200,201'}  # Line Number in LINEAS file
 rango = range(0,401) # Range to invert
 modeloFin = 'hsraB_3.mod'
 sirmode = 'perPixel' # 'continue'
-# sirmode = 'continue' # 'continue'
-continuemodel = 'finalSIR_cycle2_model_smoothed.npy'
+sirmode = 'continue' # 'continue'
+continuemodel = 'finalSIR_cycle1_model_smoothed.npy'
 
 chi2map = True # By default, we compute the chi2 map
 lambdaRef = 6301.5080 # This is extracted from LINEAS file
@@ -90,6 +91,7 @@ Initial_vmacro = 0.0 # km/s
 
 
 # ================================================= LOAD DATA
+
 
 # Load wavelength (this is the same for all nodes):
 xlambda = np.load(wavefile)
@@ -142,6 +144,10 @@ if comm.rank == 0:
     # If fov is not None, we extract a portion of the image:
     if fov is not None:
         image = image[0:int(fov.split(',')[0]),0:int(fov.split(',')[1]),:,:]
+    
+    # If skip is not 1, we skip pixels:
+    if skip != 1:
+        image = image[::skip,::skip,:,:]
 
     # Data dimensions:
     height, width, nStokes, nLambdas = image.shape
@@ -173,7 +179,6 @@ if comm.rank == 0:
     del image # We delete the original image to save memory.
     if verbose: print('Node 0 received data -> '+str(myPart.shape))
 
-    
     
     # ================================================= LOAD CONTINUE MODEL
     if sirmode == 'continue' and continuemodel is not None:
@@ -249,7 +254,6 @@ totalPixel = myPart.shape[0]
 if comm.rank == 0: print(f'\r... {0:4.2f} % ...'.format(0.0), end='', flush=True)
 
 
-
 # We invert only one pixel to test the code:
 if test1pixel:
     totalPixel = 1
@@ -269,8 +273,6 @@ if sirmode == 'continue' and continuemodel is not None:
     # Use the hsraB.mod as the baseline model for changing the initial model:
     [tau_init, model_init] = sirtools.lmodel12('hsraB.mod')
     
-
-
 
 # ================================================= INVERSION
 # Start the inversion:
@@ -326,7 +328,7 @@ else:
     # Now that we have all the results for all the pixels, we can concatenate them
     # and reshape them to the original shape of the input data:
     finalSir = np.concatenate(finalSir, axis=0)
-    finalSir = finalSir.reshape((int(finalSir.shape[0]/height),height,finalSir.shape[1],finalSir.shape[2]))
+    finalSir = finalSir.reshape((height, int(finalSir.shape[0]/height),finalSir.shape[1],finalSir.shape[2]))
 
     np.save(outputfile, finalSir)
 

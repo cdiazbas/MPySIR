@@ -15,7 +15,7 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
     """
     Runs SIR for a given pixel.
     """
-    
+
     # By default, we use 3 cycles so the final name of the model is hsraB_3.mod
     finalProfile = 'hsraB_3.per'
 
@@ -55,7 +55,6 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
 
     if sirmode == 'beforePixel':
         os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
-
 
 
 #=============================================================================
@@ -116,7 +115,6 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     print('[INFO] sir.trol updated')
 
 
-
 #=============================================================================
 def modify_vmacro(initial_vmacro):
     """
@@ -126,19 +124,18 @@ def modify_vmacro(initial_vmacro):
     f = open('invDefault/hsraB_.mod','r')
     lines = f.readlines()
     f.close()
-    
+
     # The vmacro is in the index 0 (of 3 elements) of the 1st line:
     firstLine = lines[0].split()
     newLine = '  '+str(initial_vmacro)+'  '+firstLine[1]+'  '+firstLine[2]+'\n'
     lines[0] = newLine
-    
+
     # Write the file:
     f = open('invDefault/hsraB.mod','w')
     f.writelines(lines)
     f.close()
-    print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')
-    
-    
+    print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')    
+
 
 #=============================================================================
 def write_continue_model(tau_init, model_init, continue_model, final_filename='hsraB.mod'):
@@ -159,69 +156,66 @@ def write_continue_model(tau_init, model_init, continue_model, final_filename='h
     wmodel12([tau_init, model_init], 'hsraB.mod', verbose=False)
 
 
-
-
 #=============================================================================
 def addFullProfile(sirfile):
     """
-    Having the option of synthetic profiles with other properties
+    Having the option of generating synthetic profiles with other properties
     """
-	import os
-	os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
-
-
+    import os
+    os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
 
 
 #=============================================================================
 def pncore():
-		import platform; _platform = platform.system() # We execute SIR according to the OS:
-		from subprocess import PIPE, Popen
-		if _platform == "Linux": # Linux OS
-				proceso = Popen(['nproc'], stdout=PIPE, stderr=PIPE)
-				ncores = proceso.stdout.read().split('\n')[0]
-				print('Available cores = '+ncores)
-		elif _platform == "Darwin": # MAC OS X
-				proceso = Popen(['sysctl','hw.ncpu'], stdout=PIPE, stderr=PIPE)
-				ncores = proceso.stdout.read().split('\n')[0]
-				print('Available cores = '+ncores.split(':')[-1])
+    import platform; _platform = platform.system() # We execute SIR according to the OS:
+    from subprocess import PIPE, Popen
+    if _platform == "Linux": # Linux OS
+        proceso = Popen(['nproc'], stdout=PIPE, stderr=PIPE)
+        ncores = proceso.stdout.read().split('\n')[0]
+        print('Available cores = '+ncores)
+    elif _platform == "Darwin": # MAC OS X
+        proceso = Popen(['sysctl','hw.ncpu'], stdout=PIPE, stderr=PIPE)
+        ncores = proceso.stdout.read().split('\n')[0]
+        print('Available cores = '+ncores.split(':')[-1])
 
 
 #=============================================================================
 def pprint(ini='', end='', comm=MPI.COMM_WORLD):
-		"""Print for MPI parallel programs: Only rank 0 prints *str*."""
-		if comm.rank == 0:
-				print(str(ini)+end)
+    """Print for MPI parallel programs: Only rank 0 prints *str*."""
+    if comm.rank == 0:
+        print(str(ini)+end)
+
 
 #=============================================================================
 def getTerminalSize():
-	import os
-	env = os.environ
-	def ioctl_GWINSZ(fd):
-		try:
-			import fcntl, termios, struct, os
-			cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
-			'1234'))
-		except:
-			return
-		return cr
-	cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
-	if not cr:
-		try:
-			fd = os.open(os.ctermid(), os.O_RDONLY)
-			cr = ioctl_GWINSZ(fd)
-			os.close(fd)
-		except:
-			pass
-	if not cr:
-		try:
-			cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
-			# import os
-			# cr[0],cr[1] = os.popen('stty size', 'r').read().split()
-		except:
-			pass
-			# print("Default")
-			# cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
-	return int(cr[1]), int(cr[0])
+    import os
+    env = os.environ
+    def ioctl_GWINSZ(fd):
+        try:
+            import fcntl, termios, struct, os
+            cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
+            '1234'))
+        except:
+            return
+        return cr
+    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+    if not cr:
+        try:
+            fd = os.open(os.ctermid(), os.O_RDONLY)
+            cr = ioctl_GWINSZ(fd)
+            os.close(fd)
+        except:
+            pass
+    if not cr:
+        try:
+            cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
+            # import os
+            # cr[0],cr[1] = os.popen('stty size', 'r').read().split()
+        except:
+            pass
+            # print("Default")
+            # cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
+    return int(cr[1]), int(cr[0])
 
 
 # ========================================================================================================
@@ -283,8 +277,6 @@ def plotper(main_file='data.per',
     print(output_file + ':: SAVED')
 
 
-
-
 #=============================================================================
 def plotmfit(main_file='hsraB.mod',
              synth_file='hsraB_3.mod',
@@ -341,9 +333,9 @@ def plotmfit(main_file='hsraB.mod',
 
 #=============================================================================
 def cerca(number, array):
-	from numpy import argmin, abs
-	indice = argmin(abs(number-array))
-	return indice
+    from numpy import argmin, abs
+    indice = argmin(abs(number-array))
+    return indice
 
 
 #=============================================================================
@@ -351,32 +343,31 @@ def gammaV():
     """
     Compute the inclination from the Stokes V profile to have a good guess
     """
-	from scipy import integrate
-	from scipy.interpolate import interp1d
+    from scipy import integrate
+    from scipy.interpolate import interp1d
 
-	MainFile = 'data.per'
+    MainFile = 'data.per'
 
-	x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
+    x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
 
-	indice = cerca(0.,x0)
-	distmin = min([abs(indice),abs(len(x0)-indice)])
-	centro = indice
-	x = x0
-	y = stokes0[3]
-	xlobuloazul = x[centro+1-distmin:centro+1]  
-	ylobuloazul = y[centro+1-distmin:centro+1] 
-	xlobulorojo = x[centro:centro+distmin] 
-	ylobulorojo = y[centro:centro+distmin]
-	int_roja = integrate.simps(ylobulorojo,xlobulorojo)
-	int_azul = integrate.simps(ylobuloazul,xlobuloazul)
+    indice = cerca(0.,x0)
+    distmin = min([abs(indice),abs(len(x0)-indice)])
+    centro = indice
+    x = x0
+    y = stokes0[3]
+    xlobuloazul = x[centro+1-distmin:centro+1]  
+    ylobuloazul = y[centro+1-distmin:centro+1] 
+    xlobulorojo = x[centro:centro+distmin] 
+    ylobulorojo = y[centro:centro+distmin]
+    int_roja = integrate.simps(ylobulorojo,xlobulorojo)
+    int_azul = integrate.simps(ylobuloazul,xlobuloazul)
 
-	if int_azul > int_roja: gamma = 45.0
-	if int_azul < int_roja: gamma = 135.0
+    if int_azul > int_roja: gamma = 45.0
+    if int_azul < int_roja: gamma = 135.0
 
-	from numpy import ones
-	tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
-	modelo = [tau, magnitudes]
-	magnitudes[5] = gamma*ones(len(magnitudes[5]))
-	wmodel8(modelo,'hsraB.mod',verbose=False)
-
+    from numpy import ones
+    tau, magnitudes = lmodel8('hsraB.mod',verbose=False)
+    modelo = [tau, magnitudes]
+    magnitudes[5] = gamma*ones(len(magnitudes[5]))
+    wmodel8(modelo,'hsraB.mod',verbose=False)
 

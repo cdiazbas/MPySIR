@@ -30,6 +30,7 @@ def corrphi(azimuthmap):
     azimuthmap[azimuthmap>180] = (azimuthmap[azimuthmap>180]-180)
     return
 
+
 # ========================= PLOT 1 MAP
 def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra=''):
 
@@ -59,8 +60,11 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     if parameter == 11: vmaxi = np.mean(param2plot)+6*np.std(param2plot); vmini = 0.
     if parameter == 5: vmini = np.mean(param2plot)-4*np.std(param2plot); vmaxi = -vmini
     if parameter == 11: vmini = 0.0; vmaxi = 30.0
+    if parameter == 4: vmini = 0.0; vmaxi = np.percentile(param2plot,99.0)
 
     # Plot the map associated to the parameter:
+    ratio = param2plot.shape[1]/param2plot.shape[0]
+    plt.figure(figsize=(ratio*4,4))
     plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='None',vmin=vmini,vmax=vmaxi)
     plt.xlabel('X Axis [pix]')
     plt.ylabel('Y Axis [pix]')
@@ -77,10 +81,10 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model.npy'
+inversion_model = 'finalSIR_cycle1_model_smoothed.npy'
 # inversion_model = 'finalSIR_cycle1_model.npy'
 # inversion_model = 'finalSIR_model.npy'
-extra = '_cycle1'
+extra = '_cycle1_smoothed'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,11]

@@ -1,30 +1,31 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter, median_filter
 
 """
 This module contains functions to smooth the inversion results
 before using it in the next cycle.
 """
 
+
 # ====================================================================
-def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed'):
+def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip=1):
     """
-    It smooths the inversion results using a gaussian filter and/or a median filter.
+    Smoothes the inversion results using a gaussian filter and/or a median filter.
     """
     
     # Read the inversion results:
     inversion_model = np.load(fileinput, allow_pickle=True)
-
-    # Define the guassian and median filter from ndimage:
-    from scipy.ndimage import gaussian_filter, median_filter
-
     # The inversion model has dimensions:  [ny, nx, ntau, npar]
 
 
     # Before smoothing, we need to make sure that the parameters are within the limits:
     par = 6 # The inclination angle
     inversion_model[:, :, :, par] = np.clip(inversion_model[:, :, :, par], 0.0, 180.0)
+    
+    # Now we can clip them to the percentiles 0.1 and 99.9 (to avoid extreme values):
+    for par in range(inversion_model.shape[3]):
+        inversion_model[:, :, :, par] = np.clip(inversion_model[:, :, :, par], np.percentile(inversion_model[:, :, :, par], 0.1), np.percentile(inversion_model[:, :, :, par], 99.9))
             
 
     # Run the smoothing for all optical depths for all parameters:
@@ -56,17 +57,23 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed'):
                     inversion_model[:, :, tau, par] = gaussian_filter(inversion_model[:, :, tau, par], fwhm_gaussian)
                 if size_median > 0:
                     inversion_model[:, :, tau, par] = median_filter(inversion_model[:, :, tau, par], size_median)
-                
-               
-                
+            
+    # Finally we can interpolate the model to a higher resolution proporcional to the skip parameter
+    # in the x and y directions:
+    if skip > 1:
+        inversion_model = np.repeat(inversion_model, skip, axis=0)
+        inversion_model = np.repeat(inversion_model, skip, axis=1)
+        print('The model has been interpolated to a higher resolution of {}x{} pixels'.format(inversion_model.shape[0], inversion_model.shape[1]))
+            
+
     # Save the smoothed model adding the suffix '_smoothed':
     np.save(fileinput[:-4]+suffix, inversion_model)
 
 
 
 if __name__ == "__main__":
-    fileinput = 'finalSIR_cycle2_model.npy'
+    fileinput = 'finalSIR_cycle1_model.npy'
     fwhm_gaussian = 1.0
     size_median = 0
-    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed')
+    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=1)
     
