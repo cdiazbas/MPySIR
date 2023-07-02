@@ -32,6 +32,13 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
     for tau in tqdm(range(inversion_model.shape[2])):
         for par in tqdm(range(inversion_model.shape[3]), leave=False):
             
+            # Now we fix the Nans with the "replace" astropy function:
+            from astropy.convolution import interpolate_replace_nans
+            from astropy.convolution import Gaussian2DKernel
+            inversion_model[:, :, tau, par] = interpolate_replace_nans(inversion_model[:, :, tau, par], Gaussian2DKernel(1.0))
+            # And if there are still Nans, we replace them with the median:
+            inversion_model[:, :, tau, par] = np.nan_to_num(inversion_model[:, :, tau, par], nan=np.nanmean(inversion_model[:, :, tau, par]))
+            
             # The azimuth is an angle, so we need to smooth it in a different way:
             if par == 7:
                 # The azimuth is in degrees, so we convert it to radians:
@@ -75,5 +82,5 @@ if __name__ == "__main__":
     fileinput = 'finalSIR_cycle1_model.npy'
     fwhm_gaussian = 1.0
     size_median = 0
-    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=1)
+    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=8)
     

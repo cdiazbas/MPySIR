@@ -138,7 +138,7 @@ def modify_vmacro(initial_vmacro):
 
 
 #=============================================================================
-def write_continue_model(tau_init, model_init, continue_model, final_filename='hsraB.mod'):
+def write_continue_model(tau_init, model_init, continue_model, final_filename='hsraB.mod', apply_constraints=True):
     """
     Writes an input model (from a previous inversion) to be used as a starting model
     """
@@ -153,6 +153,29 @@ def write_continue_model(tau_init, model_init, continue_model, final_filename='h
     model_init[7] = continue_model[0,8] # macro velocity
     model_init[8] = continue_model[0,9] # filling factor
     model_init[9] = continue_model[0,10] # stray light
+    
+    if apply_constraints:
+        # Temperature cannot be larger than 10000 K:
+        loc = np.where(model_init[0] > 12000.0)[0]
+        model_init[0][loc] = 12000.0
+
+        # All the values are the same before -3 or after 0.5:    
+        loc = np.where(tau_init < -3.0)[0]
+        for j in range(3,7):
+            model_init[j][loc] = model_init[j][loc[0]]
+        # model_init[0][loc] = 4000.0
+        
+        loc = np.where(tau_init > 0.0)[0]
+        for j in range(3,7):
+            model_init[j][loc] = model_init[j][loc[-1]]
+        
+        # Smooth in 1D from astropy:
+        from astropy.convolution import convolve, Gaussian1DKernel
+        for j in range(3,7):
+            model_init[j] = convolve(model_init[j], Gaussian1DKernel(2),boundary='extend')
+        # Also for the temperature:
+        model_init[0] = convolve(model_init[0], Gaussian1DKernel(2), boundary='extend')
+
     wmodel12([tau_init, model_init], 'hsraB.mod', verbose=False)
 
 

@@ -1,7 +1,7 @@
 ###############################################################
 #  MPySIR: MPI python script for SIR
 #
-#  CALL:    mpirun -n 10 python setup.py
+#  CALL:    mpirun -n 10 python setup.py // mpirun --use-hwthread-cpus -n 128 python setup.py
 ##############################################################
 
 """
@@ -53,7 +53,7 @@ comm.Barrier()
 imagefits = '../../data/sunspot_jmb_sir_synth.fits'
 original_axis = 'ns nw ny nx'
 fov = None #'4,4' # We extract a 20x20 pixels for the inversion
-skip = 8 # We skip pixels in the 2D grid to reduce the number of pixels
+skip = 1 # We skip pixels in the 2D grid to reduce the number of pixels
 
 wavefile = '../../data/wav.npy'
 dictLines = {'atom':'200,201'}  # Line Number in LINEAS file
@@ -61,12 +61,13 @@ rango = range(0,401) # Range to invert
 modeloFin = 'hsraB_3.mod'
 sirmode = 'perPixel' # 'continue'
 sirmode = 'continue' # 'continue'
-continuemodel = 'finalSIR_cycle1_model_smoothed.npy'
+continuemodel = 'finalSIR_cycle1_model.npy'
 
+apply_constraints = True # Apply smooth extrapolation outside [-3.5,0]
 chi2map = True # By default, we compute the chi2 map
 lambdaRef = 6301.5080 # This is extracted from LINEAS file
 test1pixel = False # Test the inversion of one pixel
-outputfile = 'finalSIR_cycle1.npy'
+outputfile = 'finalSIR_cycle2.npy'
 verbose = True
 
 
@@ -81,13 +82,13 @@ Initial_vmacro = 0.0 # km/s
 
 
 # Cycle 2:
-# Nodes_temperature = '5,7,9'
-# Nodes_magneticfield = '3,5,5'
-# Nodes_LOSvelocity = '3,5,5'
-# Nodes_gamma = '2,3,3'                   # Magnetic field inclination
-# Nodes_phi = '2,3,3'                     # Magnetic field azimuth
-# Invert_macroturbulence = '0'
-# Initial_vmacro = 0.0 # km/s
+Nodes_temperature = '5,7,9'
+Nodes_magneticfield = '3,5,5'
+Nodes_LOSvelocity = '3,5,5'
+Nodes_gamma = '2,3,3'                   # Magnetic field inclination
+Nodes_phi = '2,3,3'                     # Magnetic field azimuth
+Invert_macroturbulence = '0'
+Initial_vmacro = 0.0 # km/s
 
 
 # ================================================= LOAD DATA
@@ -284,7 +285,7 @@ for currentPixel in range(0,totalPixel):
     if sirmode == 'continue' and continuemodel is not None:
         # We write the initial model as hsraB.mod which is the default name for the initial model in SIR [ny, nx, ntau, npar]
         init_pixel = myInit_model[currentPixel,:,:]
-        sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod')
+        sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
 
     
     # Run SIR:

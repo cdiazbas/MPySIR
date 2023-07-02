@@ -19,7 +19,7 @@ def readSIRMap(outputSir, parameter, tau):
     parmap = np.zeros((widthMap, heightMap))
     for pix_y in range(0, heightMap):
         for pix_x in range(0, widthMap):
-            # For vmac, fill, stray and chi2 we need to take the first value
+            # For vmac, filling factor, stray-light and chi2 we take the single values:
             if parameter == 8 or parameter == 9 or parameter == 10 or parameter == 11:
                 parmap[pix_x, pix_y] = outputSir[pix_y,pix_x][1][0][parameter]
             else:
@@ -98,6 +98,7 @@ def create_profilemap(inversion_file):
 
 if __name__ == "__main__":
 
-    filename = 'finalSIR_cycle1.npy'
+    # Produce the maps of the parameters and the synthetic profiles:
+    filename = 'finalSIR_cycle2.npy'
     create_modelmap(filename)
     create_profilemap(filename)
