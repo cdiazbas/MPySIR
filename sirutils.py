@@ -11,7 +11,7 @@ This module contains functions to run SIR and modify the SIR files.
 
 
 #=============================================================================
-def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
+def sirexe(rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
     """
     Runs SIR for a given pixel.
     """
@@ -23,7 +23,6 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
         gammaV()
 
     # We run SIR
-    import os
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
     # We now read the model parameters after the fitting:
@@ -50,7 +49,7 @@ def sirexe(fila, columna, myHeight, rank, sirfile, modeloFin, resultadoSir, sirm
     xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
     perfiles = [xFull,stokesFull]
     modelos = [magnitudes, ERRmagnitudes]
-    punto = [fila + myHeight*rank, columna]
+    punto = [0,0]
     resultadoSir.append([punto,modelos,perfiles])
 
     if sirmode == 'beforePixel':
@@ -88,17 +87,6 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     f = open('invDefault/sir_.trol','r')
     lines = f.readlines()
     f.close()
-
-    """The lines appear in the following order:
-    Nodes for temperature 1      :2,3,5
-    Nodes for electr. press. 1   :0
-    Nodes for microturb. 1       :0
-    Nodes for magnetic field 1   :1,2,2
-    Nodes for LOS velocity 1     :1,2,2
-    Nodes for gamma 1            :1,1,2
-    Nodes for phi 1              :1,1,2
-    Invert macroturbulence 1?    :0
-    """
 
     # Modify the lines:
     lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
@@ -155,15 +143,14 @@ def write_continue_model(tau_init, model_init, continue_model, final_filename='h
     model_init[9] = continue_model[0,10] # stray light
     
     if apply_constraints:
-        # Temperature cannot be larger than 10000 K:
+        # Temperature cannot be larger than 12000 K:
         loc = np.where(model_init[0] > 12000.0)[0]
         model_init[0][loc] = 12000.0
 
-        # All the values are the same before -3 or after 0.5:    
+        # All the values are the same before -3 or after 0.5 (except for the temperature):    
         loc = np.where(tau_init < -3.0)[0]
         for j in range(3,7):
             model_init[j][loc] = model_init[j][loc[0]]
-        # model_init[0][loc] = 4000.0
         
         loc = np.where(tau_init > 0.0)[0]
         for j in range(3,7):
@@ -179,10 +166,105 @@ def write_continue_model(tau_init, model_init, continue_model, final_filename='h
     wmodel12([tau_init, model_init], 'hsraB.mod', verbose=False)
 
 
+
+
+# ====================================================================
+def readSIRMap(outputSir, parameter, tau):
+    """
+    It returns the map of a given parameter from the inversion at a given optical depth
+    """
+    heightMap = outputSir.shape[0]
+    widthMap = outputSir.shape[1]
+    parmap = np.zeros((widthMap, heightMap))
+    for pix_y in range(0, heightMap):
+        for pix_x in range(0, widthMap):
+            # For vmac, filling factor, stray-light and chi2 we take the single values:
+            if parameter == 8 or parameter == 9 or parameter == 10 or parameter == 11:
+                parmap[pix_x, pix_y] = outputSir[pix_y,pix_x][1][0][parameter]
+            else:
+                parmap[pix_x, pix_y] = outputSir[pix_y,pix_x][1][0][parameter][tau]
+    return parmap.T
+
+
+# ====================================================================
+def create_modelmap(inversion_file, npar = 12, readfile = True):
+    """
+    It creates a file with the model parameters [ny, nx, ntau, npar] from the inversion 
+    """
+    # Read the inversion file:
+    if readfile:
+        inversion = np.load(inversion_file,allow_pickle=True)
+    else:
+        inversion = inversion_file
+    
+    # It should have the shape: [ny, nx, ntau, npar]
+    logtau = inversion[0,0][1][0][0]
+    ntau = len(logtau)
+    
+    # The height and width of the map:
+    ny = inversion.shape[0]
+    nx = inversion.shape[1]
+    
+    # Create the file:
+    modelmap = np.zeros((ny, nx, ntau, npar))
+    for tau in tqdm(range(ntau)):
+        for par in tqdm(range(npar), leave=False):
+            modelmap[:, :, tau, par] = readSIRMap(inversion, par, tau)
+            
+    # Before smoothing, we need to make sure that the parameters are within the limits:
+    par = 6 # The inclination angle
+    modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
+        
+    # Save the file:
+    np.save(inversion_file[:-4]+'_model.npy', modelmap)
+    
+
+# ====================================================================
+def readSIRProfileMap(outputSir, Nstoke):
+    """
+    It returns the synthetic profiles from the inversion for a given Stokes parameter
+    """
+    cont = 0
+    ny = outputSir.shape[0]
+    nx = outputSir.shape[1]
+    nwav = len(outputSir[0,0][2][0])
+    syn_map = np.zeros((ny, nx, nwav))
+    for ypix in range(0, ny):
+        for xpix in range(0, nx):
+            syn_map[ypix, xpix, :] = outputSir[ypix,xpix][2][1][Nstoke]
+    return syn_map
+
+
+# ====================================================================
+def create_profilemap(inversion_file, readfile = True):
+    """
+    It creates a file with the synthetic profiles from the inversion
+    """
+    # Read the inversion file:
+    if readfile:
+        inversion = np.load(inversion_file,allow_pickle=True)
+    else:
+        inversion = inversion_file
+
+    # It should have the shape: [ny, nx, nwav, nstokes]
+    ny = inversion.shape[0]
+    nx = inversion.shape[1]
+    nwav = inversion[0,0][2][0].shape[0]
+    
+    # Create the file:
+    profilemap = np.zeros((ny, nx, nwav, 4))
+    for stoke in tqdm(range(4)):
+        profilemap[:, :, :, stoke] = readSIRProfileMap(inversion, stoke)
+    
+    # Save the file:
+    np.save(inversion_file[:-4]+'_profiles.npy', profilemap)
+
+
+
 #=============================================================================
 def addFullProfile(sirfile):
     """
-    Having the option of generating synthetic profiles with other properties
+    TODO: Having the option of generating synthetic profiles with other properties
     """
     import os
     os.system('echo sirFull.trol | '+sirfile+' > pylogFull.txt')
@@ -211,7 +293,9 @@ def pprint(ini='', end='', comm=MPI.COMM_WORLD):
 
 #=============================================================================
 def getTerminalSize():
-    import os
+    """
+    Get the terminal size in characters
+    """
     env = os.environ
     def ioctl_GWINSZ(fd):
         try:
@@ -221,6 +305,7 @@ def getTerminalSize():
         except:
             return
         return cr
+    
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
     if not cr:
         try:
@@ -232,12 +317,8 @@ def getTerminalSize():
     if not cr:
         try:
             cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
-            # import os
-            # cr[0],cr[1] = os.popen('stty size', 'r').read().split()
         except:
             pass
-            # print("Default")
-            # cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
     return int(cr[1]), int(cr[0])
 
 
@@ -304,7 +385,7 @@ def plotper(main_file='data.per',
 def plotmfit(main_file='hsraB.mod',
              synth_file='hsraB_3.mod',
              error_model=True,
-             indices_to_plot=[0, 3, 4, 5],
+             index_to_plot=[0, 3, 4, 5],
              labels=['$T$ $[K]$', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ $[G]$', r'$v_{LOS}$' + ' $[m/s]$', r'$\gamma$ $[deg]$'],
              color1='k',
              color2='m',
@@ -313,7 +394,7 @@ def plotmfit(main_file='hsraB.mod',
     Plot the initial and final model parameters.
     """
 
-    num_plots = len(indices_to_plot)
+    num_plots = len(index_to_plot)
 
     # Load data
     tau, data = lmodel8(main_file, verbose=False)
@@ -323,7 +404,7 @@ def plotmfit(main_file='hsraB.mod',
 
     plt.figure(figsize=(4 * num_plots, 5))
 
-    for i, index in enumerate(indices_to_plot):
+    for i, index in enumerate(index_to_plot):
         # Plot the data
         plt.subplot(1, num_plots, i + 1)
         quantity0, quantity1 = data[index], data2[index]
@@ -355,7 +436,7 @@ def plotmfit(main_file='hsraB.mod',
 
 
 #=============================================================================
-def cerca(number, array):
+def close_index(number, array):
     from numpy import argmin, abs
     indice = argmin(abs(number-array))
     return indice
@@ -373,7 +454,7 @@ def gammaV():
 
     x0, stokes0, [nL,posi,nN] = lperfil(MainFile)
 
-    indice = cerca(0.,x0)
+    indice = close_index(0.,x0)
     distmin = min([abs(indice),abs(len(x0)-indice)])
     centro = indice
     x = x0

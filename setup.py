@@ -49,54 +49,24 @@ if comm.rank == 0:
 comm.Barrier()
 
 
-# ================================================= INPUT
-imagefits = '../../data/sunspot_jmb_sir_synth.fits'
-original_axis = 'ns nw ny nx'
-fov = None #'4,4' # We extract a 20x20 pixels for the inversion
-skip = 1 # We skip pixels in the 2D grid to reduce the number of pixels
+# ================================================= PARAMETERS
 
-wavefile = '../../data/wav.npy'
-dictLines = {'atom':'200,201'}  # Line Number in LINEAS file
-rango = range(0,401) # Range to invert
-modeloFin = 'hsraB_3.mod'
-sirmode = 'perPixel' # 'continue'
-sirmode = 'continue' # 'continue'
-continuemodel = 'finalSIR_cycle1_model.npy'
-
-apply_constraints = True # Apply smooth extrapolation outside [-3.5,0]
-chi2map = True # By default, we compute the chi2 map
-lambdaRef = 6301.5080 # This is extracted from LINEAS file
-test1pixel = False # Test the inversion of one pixel
-outputfile = 'finalSIR_cycle2.npy'
-verbose = True
-
-
-# ================================================= INVERSION PARAMETERS
-Nodes_temperature = '2,3,5'
-Nodes_magneticfield = '1,2,3'
-Nodes_LOSvelocity = '1,2,3'
-Nodes_gamma = '1,1,2'                   # Magnetic field inclination
-Nodes_phi = '1,1,2'                     # Magnetic field azimuth
-Invert_macroturbulence = '0'
-Initial_vmacro = 0.0 # km/s
-
-
-# Cycle 2:
-Nodes_temperature = '5,7,9'
-Nodes_magneticfield = '3,5,5'
-Nodes_LOSvelocity = '3,5,5'
-Nodes_gamma = '2,3,3'                   # Magnetic field inclination
-Nodes_phi = '2,3,3'                     # Magnetic field azimuth
-Invert_macroturbulence = '0'
-Initial_vmacro = 0.0 # km/s
+# Retrieve all parameters from the config file:
+from config import *
 
 
 # ================================================= LOAD DATA
 
+# For the reference wavelength we get it from the LINEAS file:
+# lambdaRef = sirutils.getLambdaRef(dictLines)
+
 
 # Load wavelength (this is the same for all nodes):
 xlambda = np.load(wavefile)
-x = (xlambda[rango] -lambdaRef)*1e3  # Wavelength in mA
+
+if wavrange is None:
+    wavrange = range(len(xlambda))  # Wavelength range to be used in the inversion
+x = (xlambda[wavrange] -lambdaRef)*1e3  # Wavelength in mA
 
 
 # Updates malla.grid and sir.trol if master:
@@ -250,7 +220,6 @@ elif _platform == "Darwin": # MAC OS X
 	pprint('Platform: Mac OS X')
 
 
-resultadoSir = []
 totalPixel = myPart.shape[0]
 if comm.rank == 0: print(f'\r... {0:4.2f} % ...'.format(0.0), end='', flush=True)
 
@@ -271,15 +240,22 @@ else:
 
 # If we are continuing a inversion from a previous model, we modify the initial model:
 if sirmode == 'continue' and continuemodel is not None:
-    # Use the hsraB.mod as the baseline model for changing the initial model:
+    # Use the file hsraB.mod as the baseline model for changing the initial model:
     [tau_init, model_init] = sirtools.lmodel12('hsraB.mod')
-    
+
+
+# Containers for the results:
+resultadoSir = []
+
+
+# Start the inversion:
+inversion_time = time.time()  # Record the start time
 
 # ================================================= INVERSION
 # Start the inversion:
 for currentPixel in range(0,totalPixel):
     mapa = myPart[currentPixel,:,:]
-    stokes = [mapa[0,rango],mapa[1,rango],mapa[2,rango],mapa[3,rango]]
+    stokes = [mapa[0,wavrange],mapa[1,wavrange],mapa[2,wavrange],mapa[3,wavrange]]
     sirtools.wperfil('data.per',wperfilLine,x,stokes)
     
     if sirmode == 'continue' and continuemodel is not None:
@@ -287,17 +263,22 @@ for currentPixel in range(0,totalPixel):
         init_pixel = myInit_model[currentPixel,:,:]
         sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
 
-    
-    # Run SIR:
-    sirutils.sirexe(0,0,0,comm.rank,sirfile, modeloFin, resultadoSir, sirmode, chi2map)
+    # +++++++++ Run SIR +++++++++
+    sirutils.sirexe(comm.rank,sirfile, modeloFin, resultadoSir, sirmode, chi2map)
 
     if test1pixel:
         sirutils.plotper()  # Plots the profiles if we are testing 1 pixel
         sirutils.plotmfit() # Plots the model if we are testing 1 pixel
     
     # Print the percentage of the inversion:
-    porcentage = float(currentPixel)/float(totalPixel)*100.
-    if comm.rank == 0: print('\r... {0:4.2f} % ...'.format(porcentage), end='', flush=True)
+    percentage = float(currentPixel)/float(totalPixel)*100.
+    elapsed_time = time.time() - inversion_time
+    remaining_time = elapsed_time * (totalPixel - currentPixel) / (currentPixel + 1)
+    remaining_time = datetime.timedelta(seconds=remaining_time)  # Convert remaining_time to timedelta format
+    remaining_time_str = str(remaining_time).split(".")[0]  # Exclude milliseconds from remaining time string
+
+    if comm.rank == 0:
+        print('\r... {0:4.2f}% -> {1} ...'.format(percentage, remaining_time_str), end='', flush=True)
 
 
 comm.Barrier()
@@ -305,13 +286,18 @@ pprint('==> Inversion finished. Now gathering the results ..... {0:2.3f} s'.form
 pprint('-'*widthT)
 
 
+
+
+
+
+
 # ================================================= SAVING RESULTS
 # The results are transformed to a numpy array to be able to save them using MPI:
 resultadoSir = np.array(resultadoSir, dtype=object)
 
-# We could save the results in a file if needed by uncommenting the following lines:
-# np.save('modelos.npy', resultadoSir)
-
+if test1pixel:
+    # Exit the program if we are testing 1 pixel
+    sys.exit()
 
 # Gather the results in the master node:
 if comm.rank != 0:
@@ -331,7 +317,12 @@ else:
     finalSir = np.concatenate(finalSir, axis=0)
     finalSir = finalSir.reshape((height, int(finalSir.shape[0]/height),finalSir.shape[1],finalSir.shape[2]))
 
-    np.save(outputfile, finalSir)
+
+    # We now split the results in the different variables:
+    sirutils.create_modelmap(finalSir, readfile=False)
+    sirutils.create_profilemap(filename, readfile=False)
+
+
 
 comm.Barrier()
 pprint('==> MPySIR <==')
