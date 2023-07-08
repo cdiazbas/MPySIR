@@ -50,31 +50,27 @@ comm.Barrier()
 # Retrieve all parameters from the config file:
 from config import *
 
-
-# Check if the Linesfile exists (if not, it will be copied inside the invDefault folder):
-Linesfile = sirutils.checkParamsfile(Linesfile)
-Abundancefile = sirutils.checkParamsfile(Abundancefile)
-sirfile = sirutils.checkParamsfile(sirfile)
-
-
-
-# ================================================= LOAD DATA
-
-# For the reference wavelength we get it from the LINEAS file:
-lambdaRef = sirutils.getLambdaRef(dictLines,Linesfile)
-
-
-# Load wavelength (this is the same for all nodes):
-xlambda = sirutils.loadanyfile(wavefile)
-
-if wavrange is None:
-    wavrange = range(len(xlambda))  # Wavelength range to be used in the inversion
-x = (xlambda[wavrange] -lambdaRef)*1e3  # Wavelength in mA
-
+x = None
+wavrange = None
 
 # Updates malla.grid and sir.trol if master:
 if comm.rank == 0:
     
+    # Check if the files exists (if not, it will be copied inside the invDefault folder):
+    Linesfile = sirutils.checkParamsfile(Linesfile)
+    Abundancefile = sirutils.checkParamsfile(Abundancefile)
+    sirfile = sirutils.checkParamsfile(sirfile)
+
+    # For the reference wavelength we get it from the LINEAS file:
+    lambdaRef = sirutils.getLambdaRef(dictLines,Linesfile)
+
+    # Load wavelength (this is the same for all nodes):
+    xlambda = sirutils.loadanyfile(wavefile)
+
+    if wavrange is None:
+        wavrange = range(len(xlambda))  # Wavelength range to be used in the inversion
+    x = (xlambda[wavrange] -lambdaRef)*1e3  # Wavelength in mA
+
     # Modify the "malla.grid" file to change the wavelength range.
     sirutils.modify_malla(dictLines, x)
     
@@ -85,10 +81,16 @@ if comm.rank == 0:
     sirutils.modify_vmacro(Initial_vmacro)
 
 
+# Broadcast: x and wavrange:
+comm.Barrier()
+x = comm.bcast(x, root=0)
+wavrange = comm.bcast(wavrange, root=0)
+
+
+# ================================================= LOAD INPUT DATA
 # Now only the master node reads the data and broadcasts it to the rest of the nodes:
 if comm.rank == 0:
 
-    # ================================================= LOAD INPUT DATA
     image = sirutils.loadanyfile(inpufile)
         
 
