@@ -3,8 +3,8 @@ Observed profiles         (*):data.per       !
 Stray light file             :               ! (none=no stray light contam)
 PSF file                     :               ! (none=no convolution with PSF)
 Wavelength grid file      (s):malla.grid     ! (none=automatic selection)
-Atomic parameters file       :LINEAS         ! (none=DEFAULT LINES file)
-Abundances file              :THEVENIN       ! (none=DEFAULT ABUNDANCES file)
+Atomic parameters file       :Lines_LTE
+Abundances file              :ASPLUND
 Initial guess model 1     (*):hsraB.mod      !in.mod         !mag1.mod
 Initial guess model 2        :               !
 Weight for Stokes I          :1              ! (DEFAULT=1; 0=not inverted)

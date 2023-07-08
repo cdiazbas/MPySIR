@@ -1,6 +1,11 @@
 # MPySIR
 SIR inversions: MPI implementation with python
 
+## Setting up the `config.py` file
+
+- Open the file `config.py.example` file and save it as `config.py`
+
+## Commit messages
 
 Use following tags for commit messages:
 

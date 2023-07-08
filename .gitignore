@@ -197,3 +197,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+
+# Config file should not be tracked (only the template):
+config.py

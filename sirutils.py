@@ -11,13 +11,16 @@ This module contains functions to run SIR and modify the SIR files.
 
 
 #=============================================================================
-def sirexe(rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
+def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
     """
     Runs SIR for a given pixel.
     """
 
+    # TODO: move them to a variable that will change depending on the number of cycles
     # By default, we use 3 cycles so the final name of the model is hsraB_3.mod
     finalProfile = 'hsraB_3.per'
+    modeloFin = 'hsraB_3.mod'
+
 
     if sirmode == 'gammaV' or sirmode == 'gammVaddFullProfile':
         gammaV()
@@ -33,10 +36,9 @@ def sirexe(rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
 
     # We add the chi2 value to the list of parameters:
     if chi2map:
-        chifile = open('sir.chi','r')
-        for line in chifile:
-            pass
-        chi2 = float(line.split()[1])
+        with open('sir.chi', 'r') as file:
+            last_line = file.readlines()[-1]
+        chi2 = float(last_line.split()[1])
         lenmag = len(magnitudes)
         magnitudes.insert(lenmag,chi2)
         ERRmagnitudes.insert(lenmag,chi2)
@@ -55,6 +57,8 @@ def sirexe(rank, sirfile, modeloFin, resultadoSir, sirmode, chi2map = True):
     if sirmode == 'beforePixel':
         os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
 
+    # Clean some files:
+    os.remove('sir.chi')
 
 #=============================================================================
 def modify_malla(dictLines, x):
@@ -79,7 +83,7 @@ def modify_malla(dictLines, x):
 
 
 #=============================================================================
-def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence):
+def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile):
     """
     Modifies the "sir.trol" file to change the number of nodes.
     """
@@ -89,6 +93,8 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     f.close()
 
     # Modify the lines:
+    lines[5] = 'Atomic parameters file       :'+str(Linesfile)+'\n'
+    lines[6] = 'Abundances file              :'+str(Abundancefile)+'\n'
     lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
     lines[17] = 'Nodes for magnetic field 1   :'+str(Nodes_magneticfield)+'\n'
     lines[18] = 'Nodes for LOS velocity 1     :'+str(Nodes_LOSvelocity)+'\n'
@@ -100,7 +106,7 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     f = open('invDefault/sir.trol','w')
     f.writelines(lines)
     f.close()
-    print('[INFO] sir.trol updated')
+    print('[INFO] sir.trol updated with nodes, Linesfile and Abundancefile.')
 
 
 #=============================================================================
@@ -271,18 +277,16 @@ def addFullProfile(sirfile):
 
 
 #=============================================================================
-def pncore():
-    import platform; _platform = platform.system() # We execute SIR according to the OS:
-    from subprocess import PIPE, Popen
-    if _platform == "Linux": # Linux OS
-        proceso = Popen(['nproc'], stdout=PIPE, stderr=PIPE)
-        ncores = proceso.stdout.read().split('\n')[0]
-        print('Available cores = '+ncores)
-    elif _platform == "Darwin": # MAC OS X
-        proceso = Popen(['sysctl','hw.ncpu'], stdout=PIPE, stderr=PIPE)
-        ncores = proceso.stdout.read().split('\n')[0]
-        print('Available cores = '+ncores.split(':')[-1])
-
+def total_cores():
+    """
+    Get the total number of cores in the machine
+    """
+    try:
+        import multiprocessing
+        num_cores = multiprocessing.cpu_count()
+        print('[INFO] Available cores = '+str(num_cores))
+    except:
+        pass
 
 #=============================================================================
 def pprint(ini='', end='', comm=MPI.COMM_WORLD):
@@ -364,7 +368,6 @@ def plotper(main_file='data.per',
             plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
             plt.ylabel(['I/Ic', 'Q/Ic [%]', 'U/Ic [%]', 'V/Ic [%]'][sParam], fontsize=15)
             plt.xlim(x0A[pos_new[line_idx]], x0A[pos_new[line_idx + 1] - 1])
-            plt.ylim(y_range_min[sParam], y_range_max[sParam])
             plt.grid(alpha=0.2, linestyle='-')
             plt.locator_params(axis='both', nbins=4)
 
@@ -373,6 +376,12 @@ def plotper(main_file='data.per',
             if sParam > 0:  # Apply scaling factor of 100 to Q, U, and V parameters
                 synth_data = synth_data * 100
             plt.plot(xA[x_range], synth_data, color2, lw=1.0)
+            
+            if sParam == 0:
+                plt.ylim(y_range_min[sParam], np.max(data) * 1.05)
+            else:
+                plt.ylim(y_range_min[sParam], y_range_max[sParam])
+
 
     # Save the figure
     plt.tight_layout()
@@ -475,3 +484,54 @@ def gammaV():
     magnitudes[5] = gamma*ones(len(magnitudes[5]))
     wmodel8(modelo,'hsraB.mod',verbose=False)
 
+
+#=============================================================================
+def checkParamsfile(Paramsfile):
+    """
+    Check that the a file exists inside the inversions folder:
+    """
+    import copy
+    OParamsfile = copy.copy(Paramsfile)
+    # Extract the name of the file:
+    Paramsfile = Paramsfile.split('/')[-1]
+    # Check if the file exists in the folder invDefault, if not copy it:
+    if not os.path.exists('invDefault/'+Paramsfile):
+        os.system('cp '+OParamsfile+' invDefault/'+Paramsfile)
+        print('[INFO] Copied to invDefault/'+Paramsfile)
+    else:
+        print('[INFO] Already exists in invDefault/'+Paramsfile)
+    return Paramsfile
+
+
+#=============================================================================
+def getLambdaRef(dictLines,Linesfile):
+    """
+    Open the Linesfile goes to the location of the line number
+    and extract the reference wavelength:
+    """
+    with open('invDefault/'+Linesfile) as f:
+        for i, line in enumerate(f):
+            atomindex = line.split('=')[0].strip()
+            if atomindex == dictLines['atom'][0]:
+                lambdaRef = float(line.split()[2])
+                break
+        print('[INFO] lambdaRef = %.4f' % lambdaRef)
+    return lambdaRef
+
+
+#=============================================================================
+def loadanyfile(inpufile):
+    """
+    Detect and load any file with the correct format
+    """
+    # Check if image is fits or npy:
+    isfits = inpufile.split('.')[-1] == 'fits'
+    isfits = isfits or inpufile.split('.')[-1] == 'FITS'
+    
+    # Load image:
+    if isfits:
+        from astropy.io import fits
+        inputdata = fits.open(inpufile)[0].data
+    else:
+        inputdata = np.load(inpufile)
+    return inputdata

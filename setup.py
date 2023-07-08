@@ -29,7 +29,6 @@ import sirutils
 from sirutils import pprint
 import sirtools
 import sys
-import time
 import datetime
 
 
@@ -37,15 +36,12 @@ import datetime
 comm = MPI.COMM_WORLD
 widthT = 1
 if comm.rank == 0:
-	(widthT, heightT) = sirutils.getTerminalSize()
-	print('-'*widthT)
-	print('Running on %d cores' % comm.size)
-	print('-'*widthT)
-	try:
-		pncore()
-	except:
-		pass
-	from clean import clean; clean()
+    (widthT, heightT) = sirutils.getTerminalSize()
+    print('-'*widthT)
+    print('Running on %d cores' % comm.size)
+    print('-'*widthT)
+    sirutils.total_cores()
+    from clean import clean; clean()
 comm.Barrier()
 
 
@@ -55,14 +51,21 @@ comm.Barrier()
 from config import *
 
 
+# Check if the Linesfile exists (if not, it will be copied inside the invDefault folder):
+Linesfile = sirutils.checkParamsfile(Linesfile)
+Abundancefile = sirutils.checkParamsfile(Abundancefile)
+sirfile = sirutils.checkParamsfile(sirfile)
+
+
+
 # ================================================= LOAD DATA
 
 # For the reference wavelength we get it from the LINEAS file:
-# lambdaRef = sirutils.getLambdaRef(dictLines)
+lambdaRef = sirutils.getLambdaRef(dictLines,Linesfile)
 
 
 # Load wavelength (this is the same for all nodes):
-xlambda = np.load(wavefile)
+xlambda = sirutils.loadanyfile(wavefile)
 
 if wavrange is None:
     wavrange = range(len(xlambda))  # Wavelength range to be used in the inversion
@@ -76,7 +79,7 @@ if comm.rank == 0:
     sirutils.modify_malla(dictLines, x)
     
     # Modify the "sir.trol" file to change the inversion parameters.
-    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence)
+    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile)
 
     # Modify the initial model with the initial macro velocity:
     sirutils.modify_vmacro(Initial_vmacro)
@@ -86,23 +89,7 @@ if comm.rank == 0:
 if comm.rank == 0:
 
     # ================================================= LOAD INPUT DATA
-    # Check if image is fits or npy:
-    if imagefits[-3:] == 'npy':
-        isfits = False
-    elif imagefits[-4:] == 'fits':
-        isfits = True
-    else:
-        print('ERROR: Image format not recognized.')
-        sys.exit()
-
-
-    # Load image:
-    FileName = imagefits
-    if isfits:
-        from astropy.io import fits
-        image = fits.open(imagefits)[0].data
-    else:
-        image = np.load(imagefits)
+    image = sirutils.loadanyfile(inpufile)
         
 
     # We now swap the axes to [ny, nx, ns, nw]:
@@ -209,22 +196,15 @@ pprint('==> Ready to start! ..... {0:2.3f} s'.format(time.time() - start_time))
 
 
 
-# We execute SIR according to the OS:
-import platform
-_platform = platform.system() 
-if _platform == "Linux": # Linux OS
-	sirfile = './sir.x'
-	pprint('Platform: Linux OS')
-elif _platform == "Darwin": # MAC OS X
-	sirfile = './sir_mac.x'
-	pprint('Platform: Mac OS X')
+# We execute SIR in the following way:
+sirfile = './'+sirfile
 
 
 totalPixel = myPart.shape[0]
 if comm.rank == 0: print(f'\r... {0:4.2f} % ...'.format(0.0), end='', flush=True)
 
 
-# We invert only one pixel to test the code:
+# We invert only one pixel if test1pixel is True:
 if test1pixel:
     totalPixel = 1
     comm.Barrier()
@@ -264,7 +244,7 @@ for currentPixel in range(0,totalPixel):
         sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
 
     # +++++++++ Run SIR +++++++++
-    sirutils.sirexe(comm.rank,sirfile, modeloFin, resultadoSir, sirmode, chi2map)
+    sirutils.sirexe(comm.rank,sirfile, resultadoSir, sirmode, chi2map)
 
     if test1pixel:
         sirutils.plotper()  # Plots the profiles if we are testing 1 pixel
