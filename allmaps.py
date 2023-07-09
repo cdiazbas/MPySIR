@@ -26,10 +26,11 @@ phimap = make_colormap([c('white'), c('tomato'), 0.33, c('tomato'), c('deepskybl
 # ========================= PHI CORRECTION
 def corrphi(azimuthmap):
     # Fix the azimuth values so that they are in the range [0,180]
-    azimuthmap[azimuthmap<0] = (azimuthmap[azimuthmap<0]+360) % 360
-    azimuthmap[azimuthmap>180] = (azimuthmap[azimuthmap>180]-180)
-    return
-
+    sin_az = np.sin(np.deg2rad(azimuthmap)*2.0)
+    cos_az = np.cos(np.deg2rad(azimuthmap)*2.0)    
+    azimuthmap = np.rad2deg(np.arctan2(sin_az, cos_az))/2.0
+    azimuthmap[azimuthmap<0] = azimuthmap[azimuthmap<0]+180
+    return azimuthmap
 
 # ========================= PLOT 1 MAP
 def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra=''):
@@ -81,8 +82,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model.npy'
-extra = '_cycle1'
+inversion_model = 'finalSIR_cycle1_model_smoothed.npy'
+extra = '_cycle1s'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,11]

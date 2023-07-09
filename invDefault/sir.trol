@@ -12,13 +12,13 @@ Weight for Stokes Q          :1              ! (DEFAULT=1; 0=not inverted)
 Weight for Stokes U          :1              ! (DEFAULT=1; 0=not inverted)
 Weight for Stokes V          :1              ! (DEFAULT=1; 0=not inverted)
 AUTOMATIC SELECT. OF NODES?  :0              ! (DEFAULT=0=no; 1=yes)
-Nodes for temperature 1      :2,3,5
+Nodes for temperature 1      :5,7,9
 Nodes for electr. press. 1   :0
 Nodes for microturb. 1       :0
-Nodes for magnetic field 1   :1,2,3
-Nodes for LOS velocity 1     :1,2,3
-Nodes for gamma 1            :1,1,2
-Nodes for phi 1              :1,1,2
+Nodes for magnetic field 1   :3,5,5
+Nodes for LOS velocity 1     :3,5,5
+Nodes for gamma 1            :2,3,3
+Nodes for phi 1              :2,3,3
 Invert macroturbulence 1?    :0
 Nodes for temperature 2      :0
 Nodes for electr. press. 2   :0

@@ -200,4 +200,4 @@ Temporary Items
 
 
 # Config file should not be tracked (only the template):
-config.py
+config*.py

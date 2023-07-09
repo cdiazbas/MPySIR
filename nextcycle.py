@@ -7,6 +7,15 @@ This module contains functions to smooth the inversion results
 before using it in the next cycle.
 """
 
+# ========================= PHI CORRECTION
+def corrphi(azimuthmap):
+    # Fix the azimuth values so that they are in the range [0,180]
+    sin_az = np.sin(np.deg2rad(azimuthmap)*2.0)
+    cos_az = np.cos(np.deg2rad(azimuthmap)*2.0)    
+    azimuthmap = np.rad2deg(np.arctan2(sin_az, cos_az))/2.0
+    azimuthmap[azimuthmap<0] = azimuthmap[azimuthmap<0]+180
+    return azimuthmap
+
 
 # ====================================================================
 def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip=1):
@@ -18,27 +27,28 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
     inversion_model = np.load(fileinput, allow_pickle=True)
     # The inversion model has dimensions:  [ny, nx, ntau, npar]
 
-
     # Before smoothing, we need to make sure that the parameters are within the limits:
     par = 6 # The inclination angle
     inversion_model[:, :, :, par] = np.clip(inversion_model[:, :, :, par], 0.0, 180.0)
+    par = 7 # The azimuth angle
+    inversion_model[:, :, :, par] = corrphi(inversion_model[:, :, :, par])
     
-    # Now we can clip them to the percentiles 0.1 and 99.9 (to avoid extreme values):
-    for par in range(inversion_model.shape[3]):
-        inversion_model[:, :, :, par] = np.clip(inversion_model[:, :, :, par], np.percentile(inversion_model[:, :, :, par], 0.1), np.percentile(inversion_model[:, :, :, par], 99.9))
-            
-
     # Run the smoothing for all optical depths for all parameters:
-    for tau in tqdm(range(inversion_model.shape[2])):
-        for par in tqdm(range(inversion_model.shape[3]), leave=False):
+    for par in tqdm(range(1,inversion_model.shape[3])):
+        for tau in tqdm(range(inversion_model.shape[2]), leave=False):
             
-            # Now we fix the Nans with the "replace" astropy function:
-            from astropy.convolution import interpolate_replace_nans
-            from astropy.convolution import Gaussian2DKernel
-            inversion_model[:, :, tau, par] = interpolate_replace_nans(inversion_model[:, :, tau, par], Gaussian2DKernel(1.0))
-            # And if there are still Nans, we replace them with the median:
-            inversion_model[:, :, tau, par] = np.nan_to_num(inversion_model[:, :, tau, par], nan=np.nanmean(inversion_model[:, :, tau, par]))
+            if np.sum(np.isnan(inversion_model[:, :, tau, par])) > 0:
+                # Now we fix the Nans with the "replace" astropy function:
+                from astropy.convolution import interpolate_replace_nans
+                from astropy.convolution import Gaussian2DKernel
+                inversion_model[:, :, tau, par] = interpolate_replace_nans(inversion_model[:, :, tau, par], Gaussian2DKernel(1.0))
+                # And if there are still Nans, we replace them with the median:
+                inversion_model[:, :, tau, par] = np.nan_to_num(inversion_model[:, :, tau, par], nan=np.nanmean(inversion_model[:, :, tau, par]))
             
+            # Now we can clip them to the percentiles 0.1 and 99.9 (to avoid extreme values):
+            inversion_model[:, :, tau, par] = np.clip(inversion_model[:, :, tau, par], np.percentile(inversion_model[:, :, tau, par], 0.1), np.percentile(inversion_model[:, :, tau, par], 99.9))
+
+
             # The azimuth is an angle, so we need to smooth it in a different way:
             if par == 7:
                 # The azimuth is in degrees, so we convert it to radians:
@@ -58,6 +68,8 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
                 inversion_model[:, :, tau, par] = np.arctan2(sin_az, cos_az)
                 # And we convert it back to degrees:
                 inversion_model[:, :, tau, par] = np.rad2deg(inversion_model[:, :, tau, par])/2.0 # We divide by 2 to recover the original values
+                # Add 180 to the negative values:
+                inversion_model[:, :, tau, par][inversion_model[:, :, tau, par]<0] = inversion_model[:, :, tau, par][inversion_model[:, :, tau, par]<0]+180
             
             else:
                 if fwhm_gaussian > 0.0:
@@ -80,7 +92,7 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
 
 if __name__ == "__main__":
     fileinput = 'finalSIR_cycle1_model.npy'
-    fwhm_gaussian = 1.0
+    fwhm_gaussian = 0.5
     size_median = 0
-    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=8)
+    smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=1)
     
