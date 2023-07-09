@@ -30,7 +30,7 @@ from sirutils import pprint
 import sirtools
 import sys
 import datetime
-
+# sys.stderr = open(os.devnull, 'w')
 
 # ================================================= MPI INIT - CLEAN
 comm = MPI.COMM_WORLD
@@ -264,6 +264,7 @@ for currentPixel in range(0,totalPixel):
 
 
 comm.Barrier()
+pprint('\n')
 pprint('==> Inversion finished. Now gathering the results ..... {0:2.3f} s'.format(time.time() - start_time))
 pprint('-'*widthT)
 
@@ -301,8 +302,8 @@ else:
 
 
     # We now split the results in the different variables:
-    sirutils.create_modelmap(finalSir, readfile=False)
-    sirutils.create_profilemap(filename, readfile=False)
+    sirutils.create_modelmap(finalSir, outputfile)
+    sirutils.create_profilemap(finalSir, outputfile)
 
 
 
@@ -313,7 +314,7 @@ pprint('==> MPySIR <==')
 total_time = time.time() - start_time
 if comm.rank == 0:
     print('Total time: '+str(datetime.timedelta(seconds=total_time)))
-    print(' Output file: '+outputfile)
+    print('Output file: '+outputfile)
 pprint('-'*widthT)
 
 

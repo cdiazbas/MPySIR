@@ -4,6 +4,7 @@ from sirtools import lperfil
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from tqdm import tqdm
 
 """
 This module contains functions to run SIR and modify the SIR files.
@@ -193,16 +194,11 @@ def readSIRMap(outputSir, parameter, tau):
 
 
 # ====================================================================
-def create_modelmap(inversion_file, npar = 12, readfile = True):
+def create_modelmap(inversion, inversion_file, npar = 12):
     """
     It creates a file with the model parameters [ny, nx, ntau, npar] from the inversion 
     """
-    # Read the inversion file:
-    if readfile:
-        inversion = np.load(inversion_file,allow_pickle=True)
-    else:
-        inversion = inversion_file
-    
+
     # It should have the shape: [ny, nx, ntau, npar]
     logtau = inversion[0,0][1][0][0]
     ntau = len(logtau)
@@ -242,16 +238,11 @@ def readSIRProfileMap(outputSir, Nstoke):
 
 
 # ====================================================================
-def create_profilemap(inversion_file, readfile = True):
+def create_profilemap(inversion, inversion_file):
     """
     It creates a file with the synthetic profiles from the inversion
     """
-    # Read the inversion file:
-    if readfile:
-        inversion = np.load(inversion_file,allow_pickle=True)
-    else:
-        inversion = inversion_file
-
+    
     # It should have the shape: [ny, nx, nwav, nstokes]
     ny = inversion.shape[0]
     nx = inversion.shape[1]
