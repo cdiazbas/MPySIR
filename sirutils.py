@@ -18,53 +18,35 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
     Runs SIR for a given pixel.
     """
 
-    # TODO: move them to a variable that will change depending on the number of cycles
-    # By default, we use 3 cycles so the final name of the model is hsraB_3.mod
-    finalProfile = 'hsraB_3.per'
-    modeloFin = 'hsraB_3.mod'
-
-
-    if sirmode == 'gammaV' or sirmode == 'gammVaddFullProfile':
-        gammaV()
-
     # We run SIR
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
-    # We now read the model parameters after the fitting:
-    try:
-        tau, magnitudes = lmodel8(modeloFin,verbose=False)
-        ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
-        magnitudes.insert(0,tau)
-        ERRmagnitudes.insert(0,ERRtau)
-    except:
-        # If SIR do not write the final model, we copy the last model:
-        file_list = glob.glob("*.mod")
-        file_list.sort(key=os.path.getmtime, reverse=True)
-        modeloFin = os.path.basename(file_list[0])
-        finalProfile = modeloFin[0:-4]+'.per'
-        print('[INFO] SIR did not write the final model. We use the last model: ',modeloFin)
-    
-        tau, magnitudes = lmodel8(modeloFin,verbose=False)
-        ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
-        magnitudes.insert(0,tau)
-        ERRmagnitudes.insert(0,ERRtau)    
+
+    # Read the last model written by SIR:
+    file_list = glob.glob("*.mod")
+    file_list.sort(key=os.path.getmtime, reverse=True)
+    finalModel = os.path.basename(file_list[0])
+    finalProfile = finalModel[0:-4]+'.per'
+
+    tau, magnitudes = lmodel8(finalModel,verbose=False)
+    ERRtau, ERRmagnitudes = lmodel8(finalModel[0:-4]+'.err',verbose=False)
+    magnitudes.insert(0,tau)
+    ERRmagnitudes.insert(0,ERRtau)    
 
     # We add the chi2 value to the list of parameters:
     if chi2map:
         try:
-            # If the inversion has a problem will not write the chi2 file
             with open('sir.chi', 'r') as file:
                 last_line = file.readlines()[-1]
             chi2 = float(last_line.split()[1])
         except:
+            # If SIR does not write the chi2 file
             chi2 = 1000.0
+        # Add the chi2 value to the list of parameters:
         lenmag = len(magnitudes)
         magnitudes.insert(lenmag,chi2)
         ERRmagnitudes.insert(lenmag,chi2)
 
-    if sirmode == 'addFullProfile' or sirmode == 'gammVaddFullProfile':
-        addFullProfile(sirfile)
-        finalProfile = 'dataFull.per'
 
     # We read the final synthetic profiles after the fitting:
     xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
@@ -105,7 +87,7 @@ def modify_malla(dictLines, x):
 
 
 #=============================================================================
-def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile):
+def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs):
     """
     Modifies the "sir.trol" file to change the number of nodes.
     """
@@ -113,8 +95,13 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     f = open('invDefault/sir_.trol','r')
     lines = f.readlines()
     f.close()
+    
+    # Number of cycles:
+    ncycles = np.max([len(Nodes_temperature.split(',')),len(Nodes_magneticfield.split(',')),len(Nodes_LOSvelocity.split(',')),len(Nodes_gamma.split(',')),len(Nodes_phi.split(','))])
+    print('[INFO] Number of cycles: ',ncycles)
 
     # Modify the lines:
+    lines[0] = 'Number of cycles             :'+str(ncycles)+'\n'
     lines[5] = 'Atomic parameters file       :'+str(Linesfile)+'\n'
     lines[6] = 'Abundances file              :'+str(Abundancefile)+'\n'
     lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
@@ -123,6 +110,7 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     lines[19] = 'Nodes for gamma 1            :'+str(Nodes_gamma)+'\n'
     lines[20] = 'Nodes for phi 1              :'+str(Nodes_phi)+'\n'
     lines[21] = 'Invert macroturbulence 1?    :'+str(Invert_macroturbulence)+'\n'
+    lines[32] = 'mu=cos (theta)               :'+str(mu_obs)+'\n'
 
     # Write the file:
     f = open('invDefault/sir.trol','w')
@@ -340,13 +328,18 @@ def getTerminalSize():
 
 # ========================================================================================================
 def plotper(main_file='data.per',
-            synth_file='hsraB_3.per',
+            synth_file=None,
             color1='k',
             color2='m',
             y_range_max=np.array([1.1, 3., 3., 3., 3.])):
     """
     Plot the observed and synthetic profiles.
     """
+    if synth_file is None:
+        # Read the last model written by SIR:
+        file_list = glob.glob("*.per")
+        file_list.sort(key=os.path.getmtime, reverse=True)
+        synth_file = os.path.basename(file_list[0])
 
     y_range_min = -y_range_max
     y_range_min[0] = 0
@@ -404,7 +397,7 @@ def plotper(main_file='data.per',
 
 #=============================================================================
 def plotmfit(main_file='hsraB.mod',
-             synth_file='hsraB_3.mod',
+             synth_file=None,
              error_model=True,
              index_to_plot=[0, 3, 4, 5],
              labels=['$T$ $[K]$', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ $[G]$', r'$v_{LOS}$' + ' $[m/s]$', r'$\gamma$ $[deg]$'],
@@ -414,6 +407,11 @@ def plotmfit(main_file='hsraB.mod',
     """
     Plot the initial and final model parameters.
     """
+    if synth_file is None:
+        # Read the last model written by SIR:
+        file_list = glob.glob("*.mod")
+        file_list.sort(key=os.path.getmtime, reverse=True)
+        synth_file = os.path.basename(file_list[0])
 
     num_plots = len(index_to_plot)
 

@@ -201,3 +201,6 @@ Temporary Items
 
 # Config file should not be tracked (only the template):
 config*.py
+invDefault/hsraB.mod
+invDefault/malla.grid
+invDefault/sir.trol

@@ -1,42 +1,48 @@
 """
 Configuration file for the inversion using MPySIR
+
+Example of use:
+mpirun --use-hwthread-cpus -n 32 python setup.py
+
 """
 
 
 # ================================================= INPUT
 # We define the input parameters
-inpufile = '../../data/sunspot_jmb_sir_synth.fits' # Input image (can be a FITS file or a numpy NPY file).
-original_axis = 'ns nw ny nx' # Axis of the input image (ns: spectral points, nw: wavelength points, ny: y-direction, nx: x-direction)
-wavefile = '../../data/jmb_wav.npy' # Wavelength axis in Angstroms (absolute scale) (can be a FITS file or a numpy NPY file)
+inpufile = '../../../data/test_field_1_630_0.fits' # Input image (can be a FITS file or a numpy NPY file).
+original_axis = 'ns nw ny nx' # Axes of the input image (ns: stokes, nw: wavelength, ny: y-direction, nx: x-direction)
+wavefile = '../../../data/jmb_wav.npy' # Wavelength axis in Angstroms (absolute scale) (can be a FITS file or a numpy NPY file)
+mu_obs = 1.0 # Cosine of the heliocentric angle
 
-
+outputfile = 'finalSIR_cycle1.npy' # Output file with the inverted model
 Linesfile = 'Lines_LTE' # Path of the file with the spectral lines parameters
 Abundancefile = 'ASPLUND' # Path of the file with the abundances
+sirfile = 'sir.x' # Path of the SIR executable or just the name if it is inside invDefault
 dictLines = {'atom':'5,6'}  # Line Number in Linesfile file
 wavrange = None # Range of wavelength points to be used in the inversion. Default: None, Option: range(0,401)
-sirmode = 'perPixel' # If 'perPixel', SIR uses a FALC model. If 'continue', SIR starts from a previous model
-# sirmode = 'continue' # 'continue'
+sirmode = 'perPixel' # If 'perPixel', it uses a HSRA model. If 'continue', it starts from a previous model
 continuemodel = 'finalSIR_cycle1_model.npy'
+
 
 apply_constraints = True # Apply smooth extrapolation outside [-3.5,0]
 chi2map = True # By default, we include the chi2 map in the output model
-test1pixel = True # Test the inversion of one pixel
-outputfile = 'finalSIR_cycle2.npy'
-verbose = True # Verbose mode
-sirfile = 'sir.x'
+verbose = False # Verbose mode (mainly node communications)
+test1pixel = True # Test the inversion of one pixel, and plot the results
 
 
 # ================================================= INVERSION PARAMETERS
 # We define the inversion parameters
 fov = None # Using '20,20' we extract a 20x20 pixels for the inversion
-skip = 1 # We can skip pixels in the 2D grid to reduce the number of pixels
+fov_start = '0,0' # Initial pixel for the extraction
+skip = 1 # We can skip pixels in the 2D grid to reduce the pixels to invert
 
 
 # We define the nodes for the inversion
+# Note: the number of cycles is taken as the maximum number of node-configurations
 Nodes_temperature = '5,7,9'            # Temperature
-Nodes_magneticfield = '3,5,5'          # Magnetic field strength
-Nodes_LOSvelocity = '3,5,5'            # Line-of-sight velocity
-Nodes_gamma = '2,3,3'                  # Magnetic field inclination
-Nodes_phi = '2,3,3'                    # Magnetic field azimuth
+Nodes_magneticfield = '5,5'          # Magnetic field strength
+Nodes_LOSvelocity = '5,5'            # Line-of-sight velocity
+Nodes_gamma = '2,3'                  # Magnetic field inclination
+Nodes_phi = '2,3'                    # Magnetic field azimuth
 Invert_macroturbulence = '0'           # Macroturbulence (cannot be inverted if vmacro=0)
 Initial_vmacro = 0.0 # km/s            # Initial macroturbulence

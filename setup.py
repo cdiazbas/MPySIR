@@ -78,7 +78,7 @@ if comm.rank == 0:
     sirutils.modify_malla(dictLines, x)
     
     # Modify the "sir.trol" file to change the inversion parameters.
-    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile)
+    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs)
 
     # Modify the initial model with the initial macro velocity:
     sirutils.modify_vmacro(Initial_vmacro)
@@ -106,7 +106,8 @@ if comm.rank == 0:
 
     # If fov is not None, we extract a portion of the image:
     if fov is not None:
-        image = image[0:int(fov.split(',')[0]),0:int(fov.split(',')[1]),:,:]
+        xstart, ystart = int(fov_start.split(',')[0]), int(fov_start.split(',')[1])
+        image = image[0+xstart:int(fov.split(',')[0])+xstart,0+ystart:int(fov.split(',')[1])+ystart,:,:]
     
     # If skip is not 1, we skip pixels:
     if skip != 1:
