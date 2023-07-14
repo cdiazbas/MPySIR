@@ -11,6 +11,12 @@ SIR inversions: MPI implementation with python
 - Modify the parameters in the `config.py` file to suit your needs
 - Run the inversion in MPI mode with `mpirun -np <nproc> python setup.py`
 
+## Input and output formats
+
+- The input data is expected to be FITS or NUMPY files with no specific order of the dimensions. This information is added in the `config.py` file.
+- The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: logtau, temperature (K), Pe (cm^-3), v_micro (cm/s), B (G), vlos (cm/s), inclination (deg), azimuth (deg), v_mac (cm/s), filling factor, stray light (fraction), chi2.
+
+
 ## Repository Structure
 
 The repository structure is organized as follows:
@@ -26,6 +32,7 @@ The repository structure is organized as follows:
 - `nextcycle.py`: Python script to filter the inversion results and prepare for the next cycle.
 - `requirements.txt`: Lists all Python dependencies required.
 - `setup.py`: Main Python script to run the inversion.
+
 
 ## Commit messages
 
