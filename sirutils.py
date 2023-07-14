@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from tqdm import tqdm
+import glob
 
 """
 This module contains functions to run SIR and modify the SIR files.
@@ -30,16 +31,33 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
     # We now read the model parameters after the fitting:
-    tau, magnitudes = lmodel8(modeloFin,verbose=False)
-    ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
-    magnitudes.insert(0,tau)
-    ERRmagnitudes.insert(0,ERRtau)
+    try:
+        tau, magnitudes = lmodel8(modeloFin,verbose=False)
+        ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
+        magnitudes.insert(0,tau)
+        ERRmagnitudes.insert(0,ERRtau)
+    except:
+        # If SIR do not write the final model, we copy the last model:
+        file_list = glob.glob("*.mod")
+        file_list.sort(key=os.path.getmtime, reverse=True)
+        modeloFin = os.path.basename(file_list[0])
+        finalProfile = modeloFin[0:-4]+'.per'
+        print('[INFO] SIR did not write the final model. We use the last model: ',modeloFin)
+    
+        tau, magnitudes = lmodel8(modeloFin,verbose=False)
+        ERRtau, ERRmagnitudes = lmodel8(modeloFin[0:-4]+'.err',verbose=False)
+        magnitudes.insert(0,tau)
+        ERRmagnitudes.insert(0,ERRtau)    
 
     # We add the chi2 value to the list of parameters:
     if chi2map:
-        with open('sir.chi', 'r') as file:
-            last_line = file.readlines()[-1]
-        chi2 = float(last_line.split()[1])
+        try:
+            # If the inversion has a problem will not write the chi2 file
+            with open('sir.chi', 'r') as file:
+                last_line = file.readlines()[-1]
+            chi2 = float(last_line.split()[1])
+        except:
+            chi2 = 1000.0
         lenmag = len(magnitudes)
         magnitudes.insert(lenmag,chi2)
         ERRmagnitudes.insert(lenmag,chi2)
@@ -59,7 +77,10 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
         os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
 
     # Clean some files:
-    os.remove('sir.chi')
+    try:
+        os.remove('sir.chi')
+    except:
+        print('[INFO] sir.chi was not created by SIR.')
 
 #=============================================================================
 def modify_malla(dictLines, x):

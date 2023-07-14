@@ -48,8 +48,11 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     logTau = inversion_model[0,0,indexlogTau,0]
     print('logTau: {0:2.2f}'.format(logTau))
     
+    # Fix the NaN values before plotting:
+    param2plot = np.nan_to_num(param2plot, nan=np.nanmean(param2plot))
+
     # Fix the azimuth values so that they are in the range [0,180]
-    if parameter == 7: corrphi(param2plot)
+    if parameter == 7: param2plot = corrphi(param2plot)
 
     # Vmin and Vmax for the plot:
     vmini = np.mean(param2plot)-3*np.std(param2plot)
@@ -82,8 +85,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model_smoothed.npy'
-extra = '_cycle1s'
+inversion_model = 'finalSIR_cycle3_model.npy'
+extra = '_cycle3'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,11]

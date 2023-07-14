@@ -18,19 +18,22 @@ SIRMODE:
 
 """
 
+# ================================================= OS
+import os
+# Forcing that each process only uses one thread:
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 # ================================================= TIME
 import time; start_time = time.time()
 
 # ================================================= LIBRARIES
 import numpy as np
 from mpi4py import MPI
-import os
 import sirutils
 from sirutils import pprint
 import sirtools
 import sys
 import datetime
-# sys.stderr = open(os.devnull, 'w')
 
 # ================================================= MPI INIT - CLEAN
 comm = MPI.COMM_WORLD
@@ -142,6 +145,9 @@ if comm.rank == 0:
     
     # ================================================= LOAD CONTINUE MODEL
     if sirmode == 'continue' and continuemodel is not None:
+        print('[INFO] Inversion from previous model: '+continuemodel)
+
+        # We load the model:
         init_model = np.load(continuemodel)
         # If it was created with inv2model routine it should have the axes: [ny, nx, ntau, npar]
         
