@@ -15,7 +15,7 @@ SIR inversions: MPI implementation with python
 ## Input and output formats
 
 - The input data is expected to be FITS or NUMPY files with no specific order of the dimensions. This information is added in the `config.py` file.
-- The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: logtau, temperature (K), Pe (cm^-3), v_micro (cm/s), B (G), vlos (cm/s), inclination (deg), azimuth (deg), v_mac (cm/s), filling factor, stray light (fraction), chi2.
+- The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: $\log(\tau_{500})$ (logarithm of the continuum optical depth at 500nm), Temperature (K), Electron pressure (dyn/cm^2), Microturbulent velocity (cm/s), Magnetic field strength (G), Line-of-sight velocity (cm/s), Inclination angle of the magnetic field vector (deg), Azimuthal angle of the magnetic field vector (deg), Macroturbulent velocity (cm/s), Filling factor, Stray light (fraction), $\chi^2$.
 
 
 ## Repository Structure
