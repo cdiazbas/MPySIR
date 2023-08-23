@@ -29,6 +29,7 @@ The repository structure is organized as follows:
 - `sirtools.py`: Python script containing utilities for reading and writing SIR files.
 - `clean.py`: Python script to clean up the output files if needed.
 - `allmaps.py`: Python script to produce some quick plots of the inversion results.
+- `merge.py`: Python script to combine different inversion results according to the quality of the fit.
 - `invDefault`: Folder containing the default inversion configuration files.
 - `nextcycle.py`: Python script to filter the inversion results and prepare for the next cycle.
 - `requirements.txt`: Lists all Python dependencies required.
