@@ -326,7 +326,7 @@ def getTerminalSize():
     return int(cr[1]), int(cr[0])
 
 
-# ========================================================================================================
+#=============================================================================
 def plotper(main_file='data.per',
             synth_file=None,
             color1='k',
@@ -522,7 +522,7 @@ def getLambdaRef(dictLines,Linesfile):
     with open('invDefault/'+Linesfile) as f:
         for i, line in enumerate(f):
             atomindex = line.split('=')[0].strip()
-            if atomindex == dictLines['atom'][0]:
+            if atomindex == dictLines['atom'].split(',')[0]:
                 lambdaRef = float(line.split()[2])
                 break
         print('[INFO] lambdaRef = %.4f' % lambdaRef)

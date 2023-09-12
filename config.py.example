@@ -32,7 +32,7 @@ test1pixel = True # Test the inversion of one pixel, and plot the results
 
 # ================================================= INVERSION PARAMETERS
 # We define the inversion parameters
-fov = None # Using '20,20' we extract a 20x20 pixels for the inversion
+fov = None # Using '20,20' we extract a 20x20 pixels for the inversion (None otherwise)
 fov_start = '0,0' # Initial pixel for the extraction
 skip = 1 # We can skip pixels in the 2D grid to reduce the pixels to invert
 

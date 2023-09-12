@@ -112,6 +112,7 @@ if comm.rank == 0:
     # If skip is not 1, we skip pixels:
     if skip != 1:
         image = image[::skip,::skip,:,:]
+        print('[INFO] Skipping '+str(skip)+' pixels. New image shape: '+str(image.shape))
 
     # Data dimensions:
     height, width, nStokes, nLambdas = image.shape

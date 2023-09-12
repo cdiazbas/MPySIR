@@ -69,7 +69,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     # Plot the map associated to the parameter:
     ratio = param2plot.shape[1]/param2plot.shape[0]
     plt.figure(figsize=(ratio*4,4))
-    plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='None',vmin=vmini,vmax=vmaxi)
+    plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='nearest',vmin=vmini,vmax=vmaxi)
     plt.xlabel('X Axis [pix]')
     plt.ylabel('Y Axis [pix]')
     cb = plt.colorbar()
@@ -85,8 +85,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle3_model.npy'
-extra = '_cycle3'
+inversion_model = 'finalSIR_cycle1_model.npy'
+extra = '_cycle1'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,11]
