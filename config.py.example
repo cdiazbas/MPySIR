@@ -40,9 +40,11 @@ skip = 1 # We can skip pixels in the 2D grid to reduce the pixels to invert
 # We define the nodes for the inversion
 # Note: the number of cycles is taken as the maximum number of node-configurations
 Nodes_temperature = '5,7,9'            # Temperature
-Nodes_magneticfield = '5,5'          # Magnetic field strength
-Nodes_LOSvelocity = '5,5'            # Line-of-sight velocity
-Nodes_gamma = '2,3'                  # Magnetic field inclination
-Nodes_phi = '2,3'                    # Magnetic field azimuth
+Nodes_magneticfield = '5,5'            # Magnetic field strength
+Nodes_LOSvelocity = '5,5'              # Line-of-sight velocity
+Nodes_gamma = '2,3'                    # Magnetic field inclination
+Nodes_phi = '2,3'                      # Magnetic field azimuth
+Nodes_microturbulence = '1'            # Microturbulence
+Initial_micro = 1.0e5 # cm/s           # Initial microturbulence
 Invert_macroturbulence = '0'           # Macroturbulence (cannot be inverted if vmacro=0)
 Initial_vmacro = 0.0 # km/s            # Initial macroturbulence

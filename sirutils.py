@@ -87,7 +87,7 @@ def modify_malla(dictLines, x):
 
 
 #=============================================================================
-def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs):
+def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs,Nodes_microturbulence):
     """
     Modifies the "sir.trol" file to change the number of nodes.
     """
@@ -97,7 +97,8 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     f.close()
     
     # Number of cycles:
-    ncycles = np.max([len(Nodes_temperature.split(',')),len(Nodes_magneticfield.split(',')),len(Nodes_LOSvelocity.split(',')),len(Nodes_gamma.split(',')),len(Nodes_phi.split(','))])
+    ncycles = np.max([len(Nodes_temperature.split(',')),len(Nodes_magneticfield.split(',')),len(Nodes_LOSvelocity.split(',')),
+                      len(Nodes_gamma.split(',')),len(Nodes_phi.split(',')),len(Nodes_microturbulence.split(','))])
     print('[INFO] Number of cycles: ',ncycles)
 
     # Modify the lines:
@@ -105,6 +106,7 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     lines[5] = 'Atomic parameters file       :'+str(Linesfile)+'\n'
     lines[6] = 'Abundances file              :'+str(Abundancefile)+'\n'
     lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
+    lines[16] = 'Nodes for microturb. 1       :'+str(Nodes_microturbulence)+'\n'
     lines[17] = 'Nodes for magnetic field 1   :'+str(Nodes_magneticfield)+'\n'
     lines[18] = 'Nodes for LOS velocity 1     :'+str(Nodes_LOSvelocity)+'\n'
     lines[19] = 'Nodes for gamma 1            :'+str(Nodes_gamma)+'\n'
@@ -139,6 +141,29 @@ def modify_vmacro(initial_vmacro):
     f.writelines(lines)
     f.close()
     print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')    
+
+
+#=============================================================================
+def modify_vmicro(initial_vmicro):
+    """
+    Modifies the guess model with the initial microturbulence.
+    """
+    # Read the file:
+    f = open('invDefault/hsraB.mod','r')
+    lines = f.readlines()
+    f.close()
+
+    # The vmicro is the 4th column starting from the 2nd line:
+    for i in range(1,len(lines)):
+        line = lines[i].split()
+        line[3] = '{0:1.2e}'.format(initial_vmicro)
+        lines[i] = '  '.join(line)+'\n'
+
+    # Write the file:
+    f = open('invDefault/hsraB.mod','w')
+    f.writelines(lines)
+    f.close()
+    print('[INFO] Initial model updated with vmicro = ',initial_vmicro/1e5,' km/s')    
 
 
 #=============================================================================

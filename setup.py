@@ -78,10 +78,14 @@ if comm.rank == 0:
     sirutils.modify_malla(dictLines, x)
     
     # Modify the "sir.trol" file to change the inversion parameters.
-    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs)
+    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
+                            Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence)
 
     # Modify the initial model with the initial macro velocity:
     sirutils.modify_vmacro(Initial_vmacro)
+
+    # Modify the initial model with the initial micro velocity:
+    sirutils.modify_vmicro(Initial_micro)
 
 
 # Broadcast: x and wavrange:

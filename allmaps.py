@@ -65,6 +65,9 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     if parameter == 5: vmini = np.mean(param2plot)-4*np.std(param2plot); vmaxi = -vmini
     if parameter == 11: vmini = 0.0; vmaxi = 30.0
     if parameter == 4: vmini = 0.0; vmaxi = np.percentile(param2plot,99.0)
+    if parameter == 8: vmini = np.percentile(param2plot,1.0)
+    
+    print('Average: {0:2.2f}'.format(np.mean(param2plot)))
 
     # Plot the map associated to the parameter:
     ratio = param2plot.shape[1]/param2plot.shape[0]
@@ -85,10 +88,10 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model.npy'
-extra = '_cycle1'
+inversion_model = 'finalSIR_cycle2_model.npy'
+extra = '_cycle2'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
-rangeparams = [1,2,4,5,6,7,11]
+rangeparams = [1,2,4,5,6,7,8,11]
 for parameter in rangeparams:
     plot1map(index,parameter, inversion_model = inversion_model, extra=extra)
