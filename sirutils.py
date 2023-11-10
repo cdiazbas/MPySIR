@@ -6,6 +6,7 @@ import numpy as np
 import os
 from tqdm import tqdm
 import glob
+import sys
 
 """
 This module contains functions to run SIR and modify the SIR files.
@@ -252,7 +253,7 @@ def create_modelmap(inversion, inversion_file, npar = 12):
     modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
         
     # Save the file:
-    np.save(inversion_file[:-4]+'_model.npy', modelmap)
+    np.save(inversion_file[:-4]+'_model.npy', modelmap.astype(np.float32))
     
 
 # ====================================================================
@@ -288,7 +289,7 @@ def create_profilemap(inversion, inversion_file):
         profilemap[:, :, :, stoke] = readSIRProfileMap(inversion, stoke)
     
     # Save the file:
-    np.save(inversion_file[:-4]+'_profiles.npy', profilemap)
+    np.save(inversion_file[:-4]+'_profiles.npy', profilemap.astype(np.float32))
 
 
 
@@ -395,11 +396,12 @@ def plotper(main_file='data.per',
             plt.plot(x0A[x_range], data, color1, lw=1.0)
 
             # Customize the plot
-            plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=15)
-            plt.ylabel(['I/Ic', 'Q/Ic [%]', 'U/Ic [%]', 'V/Ic [%]'][sParam], fontsize=15)
+            plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=12)
+            plt.ylabel(['I/Ic', 'Q/Ic [%]', 'U/Ic [%]', 'V/Ic [%]'][sParam], fontsize=12)
             plt.xlim(x0A[pos_new[line_idx]], x0A[pos_new[line_idx + 1] - 1])
             plt.grid(alpha=0.2, linestyle='-')
             plt.locator_params(axis='both', nbins=4)
+            plt.minorticks_on()
 
             # Plot synthetic profiles
             synth_data = stokes[sParam][x_range]
@@ -425,7 +427,7 @@ def plotmfit(main_file='hsraB.mod',
              synth_file=None,
              error_model=True,
              index_to_plot=[0, 3, 4, 5],
-             labels=['$T$ $[K]$', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ $[G]$', r'$v_{LOS}$' + ' $[m/s]$', r'$\gamma$ $[deg]$'],
+             labels=['$T$ [K]', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ [G]', r'$v_{LOS}$' + ' [m/s]', r'$\gamma$ [deg]'],
              color1='k',
              color2='m',
              margin=[0.2, 0.3, 0.3, 0.3]):
@@ -467,10 +469,11 @@ def plotmfit(main_file='hsraB.mod',
 
         # Customize the plot
         plt.tick_params(axis='both', direction='in')
-        plt.xlabel(r'$log(\tau)$', fontsize=20)
-        plt.ylabel(labels[index], fontsize=20)
+        plt.xlabel(r'$\log(\tau_{500})$', fontsize=12)
+        plt.ylabel(labels[index], fontsize=12)
         plt.locator_params(axis='both', nbins=4)
         plt.grid(alpha=0.2, linestyle='-')
+        plt.minorticks_on()
 
     # Save the figure
     plt.tight_layout()
@@ -526,13 +529,22 @@ def checkParamsfile(Paramsfile):
     Check that the a file exists inside the inversions folder:
     """
     import copy
+    import shutil
+
     OParamsfile = copy.copy(Paramsfile)
     # Extract the name of the file:
     Paramsfile = Paramsfile.split('/')[-1]
+    
     # Check if the file exists in the folder invDefault, if not copy it:
     if not os.path.exists('invDefault/'+Paramsfile):
-        os.system('cp '+OParamsfile+' invDefault/'+Paramsfile)
-        print('[INFO] Copied to invDefault/'+Paramsfile)
+        # Try to copy the file:
+        try:
+            shutil.copy(Paramsfile, 'invDefault/'+Paramsfile)
+            print('[INFO] Copied to invDefault/'+Paramsfile)
+        except FileNotFoundError:
+            print("[INFO] File not found! Exitting...")
+            sys.exit(1)
+                
     else:
         print('[INFO] Already exists in invDefault/'+Paramsfile)
     return Paramsfile

@@ -64,7 +64,7 @@ for ip in tqdm(range(inversion_model.shape[3])):
 inversion_model[:,:,:,7] = corrphi(inversion_model[:,:,:,7])
             
 # Save the merged model:
-np.save(inversion_results[0][:-4]+outputname, inversion_model)
+np.save(inversion_results[0][:-4]+outputname, inversion_model.astype(np.float32))
 
 
 # Set first file as baseline:
@@ -76,4 +76,4 @@ for ix in tqdm(range(stokes.shape[0])):
         stokes[ix,iy,:,:] = stokes_list[index_min_chi2[ix,iy]][ix,iy,:,:]
 
 # Save the merged stokes:
-np.save(inversion_results[0][:-9]+'profiles'+outputname, stokes)
+np.save(inversion_results[0][:-9]+'profiles'+outputname, stokes.astype(np.float32))

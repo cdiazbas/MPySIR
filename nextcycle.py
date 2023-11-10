@@ -86,7 +86,7 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
             
 
     # Save the smoothed model adding the suffix '_smoothed':
-    np.save(fileinput[:-4]+suffix, inversion_model)
+    np.save(fileinput[:-4]+suffix, inversion_model.astype(np.float32))
 
 
 
