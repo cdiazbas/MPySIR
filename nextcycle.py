@@ -41,7 +41,7 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
                 # Now we fix the Nans with the "replace" astropy function:
                 from astropy.convolution import interpolate_replace_nans
                 from astropy.convolution import Gaussian2DKernel
-                inversion_model[:, :, tau, par] = interpolate_replace_nans(inversion_model[:, :, tau, par], Gaussian2DKernel(1.0))
+                inversion_model[:, :, tau, par] = interpolate_replace_nans(inversion_model[:, :, tau, par], Gaussian2DKernel(1.0),boundary='wrap')
                 # And if there are still Nans, we replace them with the median:
                 inversion_model[:, :, tau, par] = np.nan_to_num(inversion_model[:, :, tau, par], nan=np.nanmean(inversion_model[:, :, tau, par]))
             
@@ -91,7 +91,7 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
 
 
 if __name__ == "__main__":
-    fileinput = 'finalSIR_cycle2_model.npy'
+    fileinput = 'finalSIR_cycle1_model.npy'
     fwhm_gaussian = 0.5
     size_median = 0
     smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=1)

@@ -18,7 +18,6 @@ def corrphi(azimuthmap):
 
 
 # ========================= MERGE
-chi2location = 11
 # The first one is the baseline
 inversion_results = ['finalSIR_cycle3_model.npy','finalSIR_cycle2_model.npy'] 
 outputname = '_merged.npy'
@@ -41,7 +40,7 @@ for i in range(len(inversion_results)):
     stokes_list.append(np.load(inversion_results[i][:-9]+'profiles.npy'))
 
 
-# Load all the chi2 maps:
+# Calculate the chi2 maps:
 chi2maps = []
 for i in tqdm(range(len(inversion_results))):
     ichi2map = np.sum((observed_stokes[:,:,:,1:]-stokes_list[i][:,:,:,1:])**2.0,axis=(2,3))/observed_stokes.shape[3]

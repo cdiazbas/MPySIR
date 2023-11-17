@@ -42,6 +42,14 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     # ========================= MAP
     # Load the inversion model
     inversion_model = np.load(inversion_model, allow_pickle=True)
+    # Check that the parameter is in range:
+    if parameter in range(inversion_model.shape[3]):
+        pass
+    else:
+        print('Error: parameter out of range')
+        return 0
+    
+    # Extract the parameter to plot:
     param2plot = inversion_model[:,:,indexlogTau,parameter]
     
     # Print the logtau value at that index:
@@ -88,8 +96,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle2_model.npy'
-extra = '_cycle2'
+inversion_model = 'finalSIR_cycle1_model.npy'
+extra = '_cycle1'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,8,11]

@@ -79,14 +79,17 @@ if comm.rank == 0:
     
     # Modify the "sir.trol" file to change the inversion parameters.
     sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
-                            Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence)
+                            Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence, weightStokes)
 
-    # Modify the initial model with the initial macro velocity:
-    sirutils.modify_vmacro(Initial_vmacro)
+    # Modify the micro and macro ONLY if starting from a previous model:
+    if sirmode == 'perPixel':
+        # Modify the initial model with the initial macro velocity:
+        sirutils.modify_vmacro(Initial_vmacro)
 
-    # Modify the initial model with the initial micro velocity:
-    sirutils.modify_vmicro(Initial_micro)
-
+        # Modify the initial model with the initial micro velocity:
+        sirutils.modify_vmicro(Initial_micro)
+    else:
+        print('[INFO] Starting from a previous model. Initial vmicro and vmacro will not be modified.')
 
 # Broadcast: x and wavrange:
 comm.Barrier()
@@ -314,7 +317,9 @@ else:
 
 
     # We now split the results in the different variables:
-    sirutils.create_modelmap(finalSir, outputfile)
+    npar = 12
+    if chi2map is False: npar = 11
+    sirutils.create_modelmap(finalSir, outputfile, npar)
     sirutils.create_profilemap(finalSir, outputfile)
 
 

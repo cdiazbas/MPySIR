@@ -14,20 +14,21 @@ original_axis = 'ns nw ny nx' # Axes of the input image (ns: stokes, nw: wavelen
 wavefile = '../../../data/jmb_wav.npy' # Wavelength axis in Angstroms (absolute scale) (can be a FITS file or a numpy NPY file)
 mu_obs = 1.0 # Cosine of the heliocentric angle
 
+weightStokes = '1,1,1,1' # Weights for Stokes I, Q, U, V
 outputfile = 'finalSIR_cycle1.npy' # Output file with the inverted model
 Linesfile = 'Lines_LTE' # Path of the file with the spectral lines parameters if not already inside invDefault
 Abundancefile = 'ASPLUND' # Path of the file with the abundances if not already inside invDefault
 sirfile = 'sir.x' # Path of the SIR executable if not already inside invDefault
 dictLines = {'atom':'5,6'}  # Line Number in Linesfile file
 wavrange = None # Range of wavelength points to be used in the inversion. Default: None, Option: range(0,401)
-sirmode = 'perPixel' # If 'perPixel', it uses a HSRA model. If 'continue', it starts from a previous model
+sirmode = 'perPixel' # If 'perPixel', it uses the HSRA model. If 'continue', it starts from a previous model
 continuemodel = 'finalSIR_cycle1_model.npy' # Only used if sirmode='continue'
 
 
-apply_constraints = True # Apply smooth extrapolation outside [-3.5,0]
+apply_constraints = False # Apply smooth extrapolation outside [-3.5,0] before inversion (experimental)
 chi2map = True # By default, we include the chi2 map in the output model
 verbose = False # Verbose mode (mainly node communications)
-test1pixel = True # Test the inversion of one pixel, and plot the results
+test1pixel = True # Test the inversion of one pixel, and plot the results (for debugging)
 
 
 # ================================================= INVERSION PARAMETERS
@@ -46,5 +47,5 @@ Nodes_gamma = '2,3'                    # Magnetic field inclination
 Nodes_phi = '2,3'                      # Magnetic field azimuth
 Nodes_microturbulence = '1'            # Microturbulence
 Initial_micro = 1.0e5 # cm/s           # Initial microturbulence
-Invert_macroturbulence = '0'           # Macroturbulence (cannot be inverted if vmacro=0)
+Invert_macroturbulence = '0'           # Macroturbulence (if 1 -> vmacro cannot be 0 km/s)
 Initial_vmacro = 0.0 # km/s            # Initial macroturbulence

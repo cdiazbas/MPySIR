@@ -23,7 +23,7 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
 
-    # Read the last model written by SIR:
+    # Read the last (cycle) model written by SIR:
     file_list = glob.glob("*.mod")
     file_list.sort(key=os.path.getmtime, reverse=True)
     finalModel = os.path.basename(file_list[0])
@@ -88,7 +88,7 @@ def modify_malla(dictLines, x):
 
 
 #=============================================================================
-def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs,Nodes_microturbulence):
+def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Invert_macroturbulence, Linesfile, Abundancefile,mu_obs,Nodes_microturbulence,weightStokes):
     """
     Modifies the "sir.trol" file to change the number of nodes.
     """
@@ -100,12 +100,16 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
     # Number of cycles:
     ncycles = np.max([len(Nodes_temperature.split(',')),len(Nodes_magneticfield.split(',')),len(Nodes_LOSvelocity.split(',')),
                       len(Nodes_gamma.split(',')),len(Nodes_phi.split(',')),len(Nodes_microturbulence.split(','))])
-    print('[INFO] Number of cycles: ',ncycles)
+    print('[INFO] Number of cycles:',ncycles,'with weights:',weightStokes)
 
     # Modify the lines:
     lines[0] = 'Number of cycles             :'+str(ncycles)+'\n'
     lines[5] = 'Atomic parameters file       :'+str(Linesfile)+'\n'
     lines[6] = 'Abundances file              :'+str(Abundancefile)+'\n'
+    lines[9] = 'Weight for Stokes I          :'+str(weightStokes.split(',')[0])+'\n'
+    lines[10] = 'Weight for Stokes Q          :'+str(weightStokes.split(',')[1])+'\n'
+    lines[11] = 'Weight for Stokes U          :'+str(weightStokes.split(',')[2])+'\n'
+    lines[12] = 'Weight for Stokes V          :'+str(weightStokes.split(',')[3])+'\n'
     lines[14] = 'Nodes for temperature 1      :'+str(Nodes_temperature)+'\n'
     lines[16] = 'Nodes for microturb. 1       :'+str(Nodes_microturbulence)+'\n'
     lines[17] = 'Nodes for magnetic field 1   :'+str(Nodes_magneticfield)+'\n'
@@ -205,7 +209,7 @@ def write_continue_model(tau_init, model_init, continue_model, final_filename='h
         # Also for the temperature:
         model_init[0] = convolve(model_init[0], Gaussian1DKernel(2), boundary='extend')
 
-    wmodel12([tau_init, model_init], 'hsraB.mod', verbose=False)
+    wmodel12([tau_init, model_init], final_filename, verbose=False)
 
 
 
@@ -248,7 +252,7 @@ def create_modelmap(inversion, inversion_file, npar = 12):
         for par in tqdm(range(npar), leave=False):
             modelmap[:, :, tau, par] = readSIRMap(inversion, par, tau)
             
-    # Before smoothing, we need to make sure that the parameters are within the limits:
+    # Make sure that the parameters are within the limits:
     par = 6 # The inclination angle
     modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
         
