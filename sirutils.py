@@ -127,12 +127,12 @@ def modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, No
 
 
 #=============================================================================
-def modify_vmacro(initial_vmacro):
+def modify_vmacro(initial_vmacro, filename_base = 'invDefault/hsraB_.mod', filename_final='invDefault/hsraB.mod', verbose=True):
     """
     Modifies the guess model with the initial macroturbulence.
     """
     # Read the file:
-    f = open('invDefault/hsraB_.mod','r')
+    f = open(filename_base,'r')
     lines = f.readlines()
     f.close()
 
@@ -142,19 +142,55 @@ def modify_vmacro(initial_vmacro):
     lines[0] = newLine
 
     # Write the file:
-    f = open('invDefault/hsraB.mod','w')
+    f = open(filename_final,'w')
     f.writelines(lines)
     f.close()
-    print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')    
+    
+    if verbose:
+        print('[INFO] Initial model updated with vmacro = ',initial_vmacro,' km/s')
 
 
 #=============================================================================
-def modify_vmicro(initial_vmicro):
+def get_ntau():
+    """
+    Get the number of points in the wavelength axis
+    """
+    # Read the file:
+    f = open('invDefault/hsraB.mod','r')
+    lines = f.readlines()
+    f.close()
+    
+    # The number of points is the lenght of the column:
+    ntau = len(lines)-1
+    return ntau
+
+#=============================================================================
+def calculate_divisors(n):
+    # Calculate the divisors of n:
+    divisors = []
+    for i in range(1, n + 1):
+        if n % i == 0:
+            divisors.append(i)
+    return divisors
+
+#=============================================================================
+def calculate_nodes():
+    """
+    The number of nodes is calculated as the minimum number of divisors of ntau-1
+    """
+    ntau = get_ntau()
+    divisors = calculate_divisors(ntau-1)
+    
+    # Transform to array + 1:
+    return np.array(divisors)+1
+
+#=============================================================================
+def modify_vmicro(initial_vmicro, filename_base = 'invDefault/hsraB.mod', filename_final='invDefault/hsraB.mod', verbose=True):
     """
     Modifies the guess model with the initial microturbulence.
     """
     # Read the file:
-    f = open('invDefault/hsraB.mod','r')
+    f = open(filename_base,'r')
     lines = f.readlines()
     f.close()
 
@@ -165,10 +201,11 @@ def modify_vmicro(initial_vmicro):
         lines[i] = '  '.join(line)+'\n'
 
     # Write the file:
-    f = open('invDefault/hsraB.mod','w')
+    f = open(filename_final,'w')
     f.writelines(lines)
     f.close()
-    print('[INFO] Initial model updated with vmicro = ',initial_vmicro/1e5,' km/s')    
+    if verbose:
+        print('[INFO] Initial model updated with vmicro = ',initial_vmicro/1e5,' km/s')    
 
 
 #=============================================================================

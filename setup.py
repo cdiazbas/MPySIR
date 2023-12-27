@@ -80,16 +80,23 @@ if comm.rank == 0:
     # Modify the "sir.trol" file to change the inversion parameters.
     sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
                             Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence, weightStokes)
-
+    
+    # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
+    nodes_allowed = sirutils.calculate_nodes()
+    print('[INFO] Nodes allowed = '+str(nodes_allowed))
+    
     # Modify the micro and macro ONLY if starting from a previous model:
-    if sirmode == 'perPixel':
+    if Initial_vmacro is not None:
         # Modify the initial model with the initial macro velocity:
         sirutils.modify_vmacro(Initial_vmacro)
+    else:
+        print('[INFO] Initial macroturbulence not modified')
 
+    if Initial_micro is not None:
         # Modify the initial model with the initial micro velocity:
         sirutils.modify_vmicro(Initial_micro)
     else:
-        print('[INFO] Starting from a previous model. Initial vmicro and vmacro will not be modified.')
+        print('[INFO] Initial microturbulence not modified')
 
 # Broadcast: x and wavrange:
 comm.Barrier()
@@ -102,7 +109,6 @@ wavrange = comm.bcast(wavrange, root=0)
 if comm.rank == 0:
 
     image = sirutils.loadanyfile(inpufile)
-        
 
     # We now swap the axes to [ny, nx, ns, nw]:
     pprint('[INFO] Before - Image shape: '+str(image.shape))
@@ -259,6 +265,14 @@ for currentPixel in range(0,totalPixel):
         # We write the initial model as hsraB.mod which is the default name for the initial model in SIR [ny, nx, ntau, npar]
         init_pixel = myInit_model[currentPixel,:,:]
         sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
+        
+        # This can be done much easier by pushing the values into the init_pixel variable. But we keep it like this for now.
+        if Initial_vmacro is not None:
+            # Modify the initial model with the initial macro velocity:
+            sirutils.modify_vmacro(Initial_vmacro, filename_base='hsraB.mod', filename_final='hsraB.mod', verbose=False)
+        if Initial_micro is not None:
+            # Modify the initial model with the initial micro velocity:
+            sirutils.modify_vmicro(Initial_micro, filename_base='hsraB.mod', filename_final='hsraB.mod', verbose=False)
 
     # +++++++++ Run SIR +++++++++
     sirutils.sirexe(comm.rank,sirfile, resultadoSir, sirmode, chi2map)

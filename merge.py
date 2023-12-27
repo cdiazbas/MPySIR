@@ -24,7 +24,7 @@ outputname = '_merged.npy'
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes =  fits.open(directory+"/test_field_1_630_0.fits")[0].data
+observed_stokes =  fits.open(directory+"/sunspot_jmb_sir_synth.fits")[0].data
 observed_stokes = observed_stokes.transpose(2,3,1,0) # (x,y,lambda,stokes)
 observed_stokes.shape
 
@@ -41,6 +41,7 @@ for i in range(len(inversion_results)):
 
 
 # Calculate the chi2 maps:
+print("Calculating chi2 maps...")
 chi2maps = []
 for i in tqdm(range(len(inversion_results))):
     ichi2map = np.sum((observed_stokes[:,:,:,1:]-stokes_list[i][:,:,:,1:])**2.0,axis=(2,3))/observed_stokes.shape[3]
@@ -54,6 +55,7 @@ index_min_chi2 = np.argmin(chi2maps, axis=0)
 inversion_model = np.copy(inversion_model_list[0])
 
 # Fill the baseline model with the values of all the variables:
+print("Merging models...")
 for ip in tqdm(range(inversion_model.shape[3])):
     for ix in tqdm(range(inversion_model.shape[0]),leave=False):
         for iy in tqdm(range(inversion_model.shape[1]),leave=False):
@@ -70,6 +72,7 @@ np.save(inversion_results[0][:-4]+outputname, inversion_model.astype(np.float32)
 stokes = np.copy(stokes_list[0])
 
 # Fill the baseline stokes with the values of all the variables:
+print("Merging Stokes profiles...")
 for ix in tqdm(range(stokes.shape[0])):
     for iy in tqdm(range(stokes.shape[1]),leave=False):
         stokes[ix,iy,:,:] = stokes_list[index_min_chi2[ix,iy]][ix,iy,:,:]
