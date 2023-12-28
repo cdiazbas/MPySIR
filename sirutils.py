@@ -623,3 +623,31 @@ def loadanyfile(inpufile):
     else:
         inputdata = np.load(inpufile)
     return inputdata
+
+#=============================================================================
+def varname(p):
+    """
+    Returns the name of a variable as a string
+    """
+    import inspect, re
+    for line in inspect.getframeinfo(inspect.currentframe().f_back)[3]:
+        m = re.search(r'\bvarname\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)', line)
+        if m:
+            return m.group(1)
+
+#=============================================================================
+def check_nodes(nodes_allowed, node_variable_list, node_names):
+    """
+    Check that the nodes are allowed, as SIR will change them internally later
+    """
+    for j, node_variable_i in enumerate(node_variable_list):
+    
+        # Check if any of the elements of node_variable_i is different from the allowed:
+        if any([int(i) not in nodes_allowed for i in node_variable_i.split(',')]):
+            for i in range(len(node_variable_i.split(','))):
+                if int(node_variable_i.split(',')[i]) not in nodes_allowed:
+                    node_variable_i = node_variable_i.split(',')
+                    closest_lower_node = np.max(np.array(nodes_allowed)[np.array(nodes_allowed)<int(node_variable_i[i])])
+                    node_variable_i[i] = str(closest_lower_node)
+                    node_variable_i = ','.join(node_variable_i)
+            print('[INFO] Nodes in '+node_names[j]+' not allowed. Changing to '+str(node_variable_i))

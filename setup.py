@@ -83,9 +83,14 @@ if comm.rank == 0:
     
     # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
     nodes_allowed = sirutils.calculate_nodes()
+    # Append node 1 at the beginning:
+    nodes_allowed = [0, 1] + list(nodes_allowed)
     print('[INFO] Nodes allowed = '+str(nodes_allowed))
     
-    # Modify the micro and macro ONLY if starting from a previous model:
+    # Check if the number of nodes is allowed:
+    sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
+        
+    # Modify the vmicro and vmacro:
     if Initial_vmacro is not None:
         # Modify the initial model with the initial macro velocity:
         sirutils.modify_vmacro(Initial_vmacro)
@@ -264,15 +269,15 @@ for currentPixel in range(0,totalPixel):
     if sirmode == 'continue' and continuemodel is not None:
         # We write the initial model as hsraB.mod which is the default name for the initial model in SIR [ny, nx, ntau, npar]
         init_pixel = myInit_model[currentPixel,:,:]
-        sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
         
-        # This can be done much easier by pushing the values into the init_pixel variable. But we keep it like this for now.
+        # We modify the initial model with the initial macro and micro velocities:
         if Initial_vmacro is not None:
-            # Modify the initial model with the initial macro velocity:
-            sirutils.modify_vmacro(Initial_vmacro, filename_base='hsraB.mod', filename_final='hsraB.mod', verbose=False)
+            init_pixel[0,8] = Initial_vmacro
         if Initial_micro is not None:
-            # Modify the initial model with the initial micro velocity:
-            sirutils.modify_vmicro(Initial_micro, filename_base='hsraB.mod', filename_final='hsraB.mod', verbose=False)
+            init_pixel[:,3] = Initial_micro
+        
+        sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
+
 
     # +++++++++ Run SIR +++++++++
     sirutils.sirexe(comm.rank,sirfile, resultadoSir, sirmode, chi2map)

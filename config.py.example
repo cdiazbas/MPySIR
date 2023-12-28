@@ -48,4 +48,4 @@ Nodes_phi = '2,3'                      # Magnetic field azimuth
 Nodes_microturbulence = '1'            # Microturbulence
 Initial_micro = 1.0e5 # cm/s           # Initial microturbulence
 Invert_macroturbulence = '0'           # Macroturbulence (if 1 -> vmacro cannot be 0 km/s)
-Initial_vmacro = 0.0 # km/s            # Initial macroturbulence
+Initial_vmacro = 0.0 # km/s of sigma or None if do not overwrite model value
