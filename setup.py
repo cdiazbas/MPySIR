@@ -77,18 +77,23 @@ if comm.rank == 0:
     # Modify the "malla.grid" file to change the wavelength range.
     sirutils.modify_malla(dictLines, x)
     
-    # Modify the "sir.trol" file to change the inversion parameters.
-    sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
-                            Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence, weightStokes)
-    
-    # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
-    nodes_allowed = sirutils.calculate_nodes()
-    # Append node 1 at the beginning:
-    nodes_allowed = [0, 1] + list(nodes_allowed)
-    print('[INFO] Nodes allowed = '+str(nodes_allowed))
-    
-    # Check if the number of nodes is allowed:
-    sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
+    if sirmode == 'synthesis':
+        # Modify the "sir.trol" file to change the synthesis parameters.
+        sirutils.modify_sirtrol_synthesis(Linesfile, Abundancefile, mu_obs)
+        
+    else:
+        # Modify the "sir.trol" file to change the inversion parameters.
+        sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
+                                Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence, weightStokes)
+        
+        # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
+        nodes_allowed = sirutils.calculate_nodes()
+        # Append node 1 at the beginning:
+        nodes_allowed = [0, 1] + list(nodes_allowed)
+        print('[INFO] Nodes allowed = '+str(nodes_allowed))
+        
+        # Check if the number of nodes is allowed:
+        sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
         
     # Modify the vmicro and vmacro:
     if Initial_vmacro is not None:
@@ -112,64 +117,89 @@ wavrange = comm.bcast(wavrange, root=0)
 # ================================================= LOAD INPUT DATA
 # Now only the master node reads the data and broadcasts it to the rest of the nodes:
 if comm.rank == 0:
-
-    image = sirutils.loadanyfile(inpufile)
-
-    # We now swap the axes to [ny, nx, ns, nw]:
-    pprint('[INFO] Before - Image shape: '+str(image.shape))
-    from einops import rearrange
-    image = rearrange(image, original_axis+'-> ny nx ns nw')
-    pprint('[INFO] After - Image shape: '+str(image.shape))
-
-
-    # If fov is not None, we extract a portion of the image:
-    if fov is not None:
-        xstart, ystart = int(fov_start.split(',')[0]), int(fov_start.split(',')[1])
-        image = image[0+xstart:int(fov.split(',')[0])+xstart,0+ystart:int(fov.split(',')[1])+ystart,:,:]
     
-    # If skip is not 1, we skip pixels:
-    if skip != 1:
-        image = image[::skip,::skip,:,:]
-        print('[INFO] Skipping '+str(skip)+' pixels. New image shape: '+str(image.shape))
+    if sirmode == 'synthesis':
+        print('[INFO] SIR mode: '+sirmode)  
 
-    # Data dimensions:
-    height, width, nStokes, nLambdas = image.shape
+        # We only load the input model, so the module for
+        # the loading any input model takes care of that.
+        if interpolate_factor >1:        
+            print('[INFO] Interpolating in logtau by a factor of '+str(interpolate_factor))
 
-    # Now we divide the image in portions and send them to the nodes. For that,
-    # we can flatten the X&Y dimensions and divide them with array_split:
-    totalpixels = height*width
-    print('[INFO] Total pixels: '+str(totalpixels))
-    listofpixels = np.arange(totalpixels)
-    listofparts = np.array_split(listofpixels, comm.size)
+
     
-    # We need to flatten the image to send it to the nodes, by
-    # moving the X&Y dimensions to the first axis and then flattening:
-    image = image.reshape((totalpixels, nStokes, nLambdas))    
-    
-    # Print the list of parts for each node:
-    for nodei in range(comm.size):
-        if verbose:
-            print('[INFO] Node '+str(nodei)+' will receive: from pixel '+str(listofparts[nodei][0])+' to '+str(listofparts[nodei][-1]))
+    else:
+        print('[INFO] SIR mode: '+sirmode)  
 
-    # Divide the image in small portions and broadcast them to the nodes:
-    for nodei in range(1, comm.size):
-        myrange = listofparts[nodei]
-        comm.send(image[myrange,:,:], dest = nodei, tag = 100)
+        # We load the input data:
+        image = sirutils.loadanyfile(inpufile)
 
-    # The master node keeps the first portion:
-    myrange = listofparts[0]
-    myPart = np.copy(image[myrange,:,:])
-    del image # We delete the original image to save memory.
-    if verbose: print('Node 0 received data -> '+str(myPart.shape))
+        # We now swap the axes to [ny, nx, ns, nw]:
+        pprint('[INFO] Before - Image shape: '+str(image.shape))
+        from einops import rearrange
+        image = rearrange(image, original_axis+'-> ny nx ns nw')
+        pprint('[INFO] After - Image shape: '+str(image.shape))
+
+
+        # If fov is not None, we extract a portion of the image:
+        if fov is not None:
+            xstart, ystart = int(fov_start.split(',')[0]), int(fov_start.split(',')[1])
+            image = image[0+xstart:int(fov.split(',')[0])+xstart,0+ystart:int(fov.split(',')[1])+ystart,:,:]
+        
+        # If skip is not 1, we skip pixels:
+        if skip != 1:
+            image = image[::skip,::skip,:,:]
+            print('[INFO] Skipping '+str(skip)+' pixels. New image shape: '+str(image.shape))
+
+        # Data dimensions:
+        height, width, nStokes, nLambdas = image.shape
+
+        # Now we divide the image in portions and send them to the nodes. For that,
+        # we can flatten the X&Y dimensions and divide them with array_split:
+        totalpixels = height*width
+        print('[INFO] Total pixels in data: '+str(totalpixels)+' (height: '+str(height)+' x width: '+str(width)+')')
+        listofpixels = np.arange(totalpixels)
+        listofparts = np.array_split(listofpixels, comm.size)
+        
+        # We need to flatten the image to send it to the nodes, by
+        # moving the X&Y dimensions to the first axis and then flattening:
+        image = image.reshape((totalpixels, nStokes, nLambdas))    
+        
+        # Print the list of parts for each node:
+        for nodei in range(comm.size):
+            if verbose:
+                print('[INFO] Node '+str(nodei)+' will receive: from pixel '+str(listofparts[nodei][0])+' to '+str(listofparts[nodei][-1]))
+
+        # Divide the image in small portions and broadcast them to the nodes:
+        for nodei in range(1, comm.size):
+            myrange = listofparts[nodei]
+            comm.send(image[myrange,:,:], dest = nodei, tag = 100)
+
+        # The master node keeps the first portion:
+        myrange = listofparts[0]
+        myPart = np.copy(image[myrange,:,:])
+        del image # We delete the original image to save memory.
+        if verbose: print('Node 0 received data -> '+str(myPart.shape))
 
     
     # ================================================= LOAD CONTINUE MODEL
-    if sirmode == 'continue' and continuemodel is not None:
-        print('[INFO] Inversion from previous model: '+continuemodel)
+    if (sirmode == 'continue' or sirmode == 'synthesis') and inputmodel is not None:
+        print('[INFO] Using model: '+inputmodel)
 
         # We load the model:
-        init_model = np.load(continuemodel)
-        # If it was created with inv2model routine it should have the axes: [ny, nx, ntau, npar]
+        init_model = np.load(inputmodel)
+        # If it was created with inv2model routine it should have the axes: [ny, nx, nlogtau, npar]
+
+        # Data dimensions:
+        height, width, nlogtau, nparams = init_model.shape
+
+        # Now we divide the image in portions and send them to the nodes. For that,
+        # we can flatten the X&Y dimensions and divide them with array_split:
+        totalpixels = height*width
+        print('[INFO] Total pixels in model: '+str(totalpixels)+' (height: '+str(height)+' x width: '+str(width)+')')
+        listofpixels = np.arange(totalpixels)
+        listofparts = np.array_split(listofpixels, comm.size)
+        
         
         # We now also flatten the model to send it to the nodes, by
         # flattening, as model is already in the correct axes:
@@ -191,16 +221,17 @@ if comm.rank != 0:
     
     # ================================================= LOAD INPUT DATA
     # The rest of the nodes receive their portion:
-    myPart = comm.recv(source = 0, tag = 100)
-    if verbose:
-        print('Node '+str(comm.rank)+' received data -> '+str(myPart.shape),flush=True)
+    if sirmode != 'synthesis':
+        myPart = comm.recv(source = 0, tag = 100)
+        if verbose:
+            print('Node '+str(comm.rank)+' received data -> '+str(myPart.shape),flush=True)
 
     # ================================================= LOAD CONTINUE MODEL
-    if sirmode == 'continue' and continuemodel is not None:
+    if (sirmode == 'continue' or sirmode == 'synthesis') and inputmodel is not None:
         myInit_model = comm.recv(source = 0, tag = 200)
         if verbose:
             print('Node '+str(comm.rank)+' received new init model -> '+str(myInit_model.shape),flush=True)
-
+    
 
 comm.Barrier()
 pprint('==> Data loaded ..... {0:2.3f} s'.format(time.time() - start_time))
@@ -227,8 +258,10 @@ pprint('==> Ready to start! ..... {0:2.3f} s'.format(time.time() - start_time))
 # We execute SIR in the following way:
 sirfile = './'+sirfile
 
-
-totalPixel = myPart.shape[0]
+if sirmode != 'synthesis':
+    totalPixel = myPart.shape[0]
+else:
+    totalPixel = myInit_model.shape[0]
 if comm.rank == 0: print(f'\r... {0:4.2f} % ...'.format(0.0), end='', flush=True)
 
 
@@ -246,10 +279,6 @@ else:
     wperfilLine = dictLines['atom']
 
 
-# If we are continuing a inversion from a previous model, we modify the initial model:
-if sirmode == 'continue' and continuemodel is not None:
-    # Use the file hsraB.mod as the baseline model for changing the initial model:
-    [tau_init, model_init] = sirtools.lmodel12('hsraB.mod')
 
 
 # Containers for the results:
@@ -262,29 +291,54 @@ inversion_time = time.time()  # Record the start time
 # ================================================= INVERSION
 # Start the inversion:
 for currentPixel in range(0,totalPixel):
-    mapa = myPart[currentPixel,:,:]
-    stokes = [mapa[0,wavrange],mapa[1,wavrange],mapa[2,wavrange],mapa[3,wavrange]]
-    sirtools.wperfil('data.per',wperfilLine,x,stokes)
     
-    if sirmode == 'continue' and continuemodel is not None:
+    if sirmode != 'synthesis':
+        # We write the data.per file for each pixel:
+        mapa = myPart[currentPixel,:,:]
+        stokes = [mapa[0,wavrange],mapa[1,wavrange],mapa[2,wavrange],mapa[3,wavrange]]
+        sirtools.wperfil('data.per',wperfilLine,x,stokes)
+        
+
+    if (sirmode == 'continue' or sirmode == 'synthesis') and inputmodel is not None:
         # We write the initial model as hsraB.mod which is the default name for the initial model in SIR [ny, nx, ntau, npar]
         init_pixel = myInit_model[currentPixel,:,:]
-        
+        tau_init = myInit_model[currentPixel,:,0]
+
+        # We interpolate the initial model in logtau if interpolate_factor > 1 only for synthesis:
+        if sirmode == 'synthesis':
+            if interpolate_factor >1: 
+                new_tau = np.linspace(tau_init[0], tau_init[-1], int(interpolate_factor*len(tau_init)))
+                new_init_pixel = np.zeros((len(new_tau), init_pixel.shape[1]))
+                for i in range(new_init_pixel.shape[1]):
+                    from scipy import interpolate
+                    f = interpolate.interp1d(tau_init, init_pixel[:,i])
+                    new_init_pixel[:,i] = f(new_tau)
+                tau_init = new_tau
+                init_pixel = new_init_pixel
+
+
+        model_init = [np.zeros_like(tau_init) for j in range(13)]
+
         # We modify the initial model with the initial macro and micro velocities:
         if Initial_vmacro is not None:
             init_pixel[0,8] = Initial_vmacro
         if Initial_micro is not None:
             init_pixel[:,3] = Initial_micro
         
+        # Assuming filling factor of 1 and no stray light:
+        init_pixel[:,9] = 1.0
+        init_pixel[:,10] = 0.0
+        
         sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
 
 
     # +++++++++ Run SIR +++++++++
-    sirutils.sirexe(comm.rank,sirfile, resultadoSir, sirmode, chi2map)
+    sirutils.sirexe(comm.rank, sirfile, resultadoSir, sirmode, chi2map, x)
 
     if test1pixel:
         sirutils.plotper()  # Plots the profiles if we are testing 1 pixel
-        sirutils.plotmfit() # Plots the model if we are testing 1 pixel
+        if sirmode != 'synthesis':
+            sirutils.plotmfit() # Plots the model if we are testing 1 pixel
     
     # Print the percentage of the inversion:
     percentage = float(currentPixel)/float(totalPixel)*100.
@@ -338,8 +392,9 @@ else:
     # We now split the results in the different variables:
     npar = 12
     if chi2map is False: npar = 11
-    sirutils.create_modelmap(finalSir, outputfile, npar)
     sirutils.create_profilemap(finalSir, outputfile)
+    if sirmode != 'synthesis':
+        sirutils.create_modelmap(finalSir, outputfile, npar)
 
 
 

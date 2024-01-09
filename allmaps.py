@@ -96,8 +96,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model.npy'
-extra = '_cycle1'
+inversion_model = 'finalSIR100_cycle1_model.npy'
+extra = '_cycle1_100'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,8,11]

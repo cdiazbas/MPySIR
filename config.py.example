@@ -9,7 +9,7 @@ mpirun --use-hwthread-cpus -n 32 python setup.py
 
 # ================================================= INPUT
 # We define the input parameters
-inpufile = '../../../data/test_field_1_630_0.fits' # Input image (can be a FITS file or a numpy NPY file).
+inpufile = 'observations.fits' # Input image (can be a FITS file or a numpy NPY file).
 original_axis = 'ns nw ny nx' # Axes of the input image (ns: stokes, nw: wavelength, ny: y-direction, nx: x-direction)
 wavefile = '../../../data/jmb_wav.npy' # Wavelength axis in Angstroms (absolute scale) (can be a FITS file or a numpy NPY file)
 mu_obs = 1.0 # Cosine of the heliocentric angle
@@ -22,7 +22,7 @@ sirfile = 'sir.x' # Path of the SIR executable if not already inside invDefault
 dictLines = {'atom':'5,6'}  # Line Number in Linesfile file
 wavrange = None # Range of wavelength points to be used in the inversion. Default: None, Option: range(0,401)
 sirmode = 'perPixel' # If 'perPixel', it uses the HSRA model. If 'continue', it starts from a previous model
-continuemodel = 'finalSIR_cycle1_model.npy' # Only used if sirmode='continue'
+inputmodel = 'finalSIR_cycle1_model.npy' # Only used if sirmode='continue'
 
 
 apply_constraints = False # Apply smooth extrapolation outside [-3.5,0] before inversion (experimental)
@@ -30,6 +30,23 @@ chi2map = True # By default, we include the chi2 map in the output model
 verbose = False # Verbose mode (mainly node communications)
 test1pixel = True # Test the inversion of one pixel, and plot the results (for debugging)
 
+
+# ================================================= INPUT - SYNTHESIS
+"""inputmodel = 'simulation.npy' # dims=[ny, nx, nlogtau, npar]
+
+wavefile = 'wav.npy' # Wavelength in Angstroms (absolute) (can be a FITS file or a numpy file)
+mu_obs = 1.0 # Cosine of the heliocentric angle
+
+Linesfile = 'Lines_LTE' # Path of the file with the spectral lines parameters
+Abundancefile = 'ASPLUND' # Path of the file with the abundances
+dictLines = {'atom':'5,6'}  # Line Number in Linesfile file
+sirfile = 'sir.x' # Path of the SIR executable
+sirmode = 'synthesis'
+outputfile = 'synth_newgrid.npy'
+
+test1pixel = False # Test the calculation in one pixel
+interpolate_factor = 2.0 # New logtau grid is interpolated before the synthesis
+"""
 
 # ================================================= INVERSION PARAMETERS
 # We define the inversion parameters

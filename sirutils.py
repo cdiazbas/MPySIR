@@ -14,7 +14,7 @@ This module contains functions to run SIR and modify the SIR files.
 
 
 #=============================================================================
-def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
+def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
     """
     Runs SIR for a given pixel.
     """
@@ -22,48 +22,75 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True):
     # We run SIR
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
+    # ====================================================
+    # INVERSION MODE
+    if sirmode != 'synthesis':
+        # Last files written by SIR:
+        file_list = glob.glob("*.mod")
+        file_list.sort(key=os.path.getmtime, reverse=True)
+        finalModel = os.path.basename(file_list[0])
+        finalProfile = finalModel[0:-4]+'.per'
+ 
+        tau, magnitudes = lmodel8(finalModel,verbose=False)
+        ERRtau, ERRmagnitudes = lmodel8(finalModel[0:-4]+'.err',verbose=False)
+        magnitudes.insert(0,tau)
+        ERRmagnitudes.insert(0,ERRtau)    
 
-    # Read the last (cycle) model written by SIR:
-    file_list = glob.glob("*.mod")
-    file_list.sort(key=os.path.getmtime, reverse=True)
-    finalModel = os.path.basename(file_list[0])
-    finalProfile = finalModel[0:-4]+'.per'
+        # We add the chi2 value to the list of parameters:
+        if chi2map:
+            try:
+                with open('sir.chi', 'r') as file:
+                    last_line = file.readlines()[-1]
+                chi2 = float(last_line.split()[1])
+            except:
+                # If SIR does not write the chi2 file
+                chi2 = 1000.0
+            # Add the chi2 value to the list of parameters:
+            lenmag = len(magnitudes)
+            magnitudes.insert(lenmag,chi2)
+            ERRmagnitudes.insert(lenmag,chi2)
 
-    tau, magnitudes = lmodel8(finalModel,verbose=False)
-    ERRtau, ERRmagnitudes = lmodel8(finalModel[0:-4]+'.err',verbose=False)
-    magnitudes.insert(0,tau)
-    ERRmagnitudes.insert(0,ERRtau)    
 
-    # We add the chi2 value to the list of parameters:
-    if chi2map:
+        # We read the final synthetic profiles after the fitting:
+        xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
+        perfiles = [xFull,stokesFull]
+        modelos = [magnitudes, ERRmagnitudes]
+        punto = [0,0]
+        resultadoSir.append([punto,modelos,perfiles])
+
+        if sirmode == 'beforePixel':
+            os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
+
+        # Clean some files:
         try:
-            with open('sir.chi', 'r') as file:
-                last_line = file.readlines()[-1]
-            chi2 = float(last_line.split()[1])
+            os.remove('sir.chi')
         except:
-            # If SIR does not write the chi2 file
-            chi2 = 1000.0
-        # Add the chi2 value to the list of parameters:
-        lenmag = len(magnitudes)
-        magnitudes.insert(lenmag,chi2)
-        ERRmagnitudes.insert(lenmag,chi2)
+            print('[INFO] sir.chi was not created by SIR.')
 
 
-    # We read the final synthetic profiles after the fitting:
-    xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
-    perfiles = [xFull,stokesFull]
-    modelos = [magnitudes, ERRmagnitudes]
-    punto = [0,0]
-    resultadoSir.append([punto,modelos,perfiles])
 
-    if sirmode == 'beforePixel':
-        os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
+    # ====================================================
+    # SYNTHESIS MODE
+    else:
+        # Here we are in synthesis mode, so we only read the synthetic profiles:
+        finalProfile = 'data.per'
+        try:
+            xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
+            perfiles = [xFull,stokesFull]
+        except:
+            print('[INFO] SIR failed to create the synthetic profiles.')
+            # Create fake perfiles:
+            xFull = x.copy()
+            stokesFull = [np.zeros_like(x) for i in range(4)]
+            perfiles = [xFull,stokesFull]
 
-    # Clean some files:
-    try:
-        os.remove('sir.chi')
-    except:
-        print('[INFO] sir.chi was not created by SIR.')
+        punto = [0,0]
+        resultadoSir.append([punto,punto,perfiles])
+
+
+
+
+
 
 #=============================================================================
 def modify_malla(dictLines, x):
@@ -85,6 +112,28 @@ def modify_malla(dictLines, x):
     f = open('invDefault/malla.grid','w')
     f.writelines(lines)
     f.close()
+
+#=============================================================================
+def modify_sirtrol_synthesis(Linesfile, Abundancefile, mu_obs):
+    """
+    Modifies the "sir.trol" file to change the number of nodes.
+    """
+    # Read the file:
+    f = open('invDefault/sir_.trol','r')
+    lines = f.readlines()
+    f.close()
+
+    # Modify the lines:
+    lines[0] = 'Number of cycles             :'+str(0)+'\n'
+    lines[5] = 'Atomic parameters file       :'+str(Linesfile)+'\n'
+    lines[6] = 'Abundances file              :'+str(Abundancefile)+'\n'
+    lines[32] = 'mu=cos (theta)               :'+str(mu_obs)+'\n'
+
+    # Write the file:
+    f = open('invDefault/sir.trol','w')
+    f.writelines(lines)
+    f.close()
+    print('[INFO] sir.trol updated with Linesfile and Abundancefile.')
 
 
 #=============================================================================
@@ -294,7 +343,10 @@ def create_modelmap(inversion, inversion_file, npar = 12):
     modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
         
     # Save the file:
-    np.save(inversion_file[:-4]+'_model.npy', modelmap.astype(np.float32))
+    if inversion_file[-4:] == '.npy':
+        np.save(inversion_file[:-4]+'_model.npy', modelmap.astype(np.float32))
+    else:
+        np.save(inversion_file+'_model.npy', modelmap.astype(np.float32))
     
 
 # ====================================================================
@@ -302,7 +354,6 @@ def readSIRProfileMap(outputSir, Nstoke):
     """
     It returns the synthetic profiles from the inversion for a given Stokes parameter
     """
-    cont = 0
     ny = outputSir.shape[0]
     nx = outputSir.shape[1]
     nwav = len(outputSir[0,0][2][0])
@@ -330,7 +381,10 @@ def create_profilemap(inversion, inversion_file):
         profilemap[:, :, :, stoke] = readSIRProfileMap(inversion, stoke)
     
     # Save the file:
-    np.save(inversion_file[:-4]+'_profiles.npy', profilemap.astype(np.float32))
+    if inversion_file[-4:] == '.npy':
+        np.save(inversion_file[:-4]+'_profiles.npy', profilemap.astype(np.float32))
+    else:
+        np.save(inversion_file+'_profiles.npy', profilemap.astype(np.float32))
 
 
 

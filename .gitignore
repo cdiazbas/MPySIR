@@ -205,3 +205,5 @@ invDefault/hsraB.mod
 invDefault/malla.grid
 invDefault/sir.trol
 invDefault/sir.x
+*.ipynb
+*node*

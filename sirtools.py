@@ -153,15 +153,6 @@ def lperfil(filename, verbose=False):
 # ====================================================================
 def wperfil(filename, numberLine, lambda_mA, stokes):
     """Write SIR Stokes profile in a file
-
-    Args:
-        filename (TYPE): Description
-        numberLine (TYPE): Description
-        lambda_mA (TYPE): Description
-        stokes (TYPE): Description
-
-    Returns:
-        TYPE: Description
     """
     si = stokes[0]
     sq = stokes[1]
@@ -379,7 +370,7 @@ def wmodel12(modelo, filename, verbose=False):
         if i == -1:
             fo.write('   {0:3.4f}  {1:3.4f}  {2:3.4f}\n'.format(vmac, fill, stray))
         if i != -1:
-            fo.write('   {0:2.4f}  {1:2.6e}  {2:2.6e}  {3:2.6e}  {4:2.6e}  {5:2.6e}  {6:2.6e}  {7:2.6e}  {8:2.6e}  {9:2.6e}  {10:2.6e}\n'
+            fo.write('   {0:2.4f}  {1:2.1f}  {2:2.3e}  {3:2.3e}  {4:2.3e}  {5:2.3e}  {6:2.3e}  {7:2.3e}  {8:2.3e}  {9:2.3e}  {10:2.4e}\n'
                      .format(tau[i], temp[i], Pres[i], vmic[i], Bmag[i], vlos[i], gamma[i], phi[i], zz[i], pgas[i], rho[i]))
     fo.close()
     return
