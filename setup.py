@@ -126,7 +126,8 @@ if comm.rank == 0:
         if interpolate_factor >1:        
             print('[INFO] Interpolating in logtau by a factor of '+str(interpolate_factor))
 
-
+        if apply_constraints:
+            print('[INFO] Warning: Modifying the initial model with the keyword apply_constraints')
     
     else:
         print('[INFO] SIR mode: '+sirmode)  
@@ -189,6 +190,13 @@ if comm.rank == 0:
         # We load the model:
         init_model = np.load(inputmodel)
         # If it was created with inv2model routine it should have the axes: [ny, nx, nlogtau, npar]
+
+        
+        # If fov is not None, we extract a portion of the image:
+        if fov is not None:
+            xstart, ystart = int(fov_start.split(',')[0]), int(fov_start.split(',')[1])
+            init_model = init_model[0+xstart:int(fov.split(',')[0])+xstart,0+ystart:int(fov.split(',')[1])+ystart,:,:]
+        
 
         # Data dimensions:
         height, width, nlogtau, nparams = init_model.shape
@@ -307,14 +315,28 @@ for currentPixel in range(0,totalPixel):
         # We interpolate the initial model in logtau if interpolate_factor > 1 only for synthesis:
         if sirmode == 'synthesis':
             if interpolate_factor >1: 
+                from scipy import interpolate
                 new_tau = np.linspace(tau_init[0], tau_init[-1], int(interpolate_factor*len(tau_init)))
                 new_init_pixel = np.zeros((len(new_tau), init_pixel.shape[1]))
                 for i in range(new_init_pixel.shape[1]):
-                    from scipy import interpolate
                     f = interpolate.interp1d(tau_init, init_pixel[:,i])
                     new_init_pixel[:,i] = f(new_tau)
+                
+                # For the azimuth we need to interpolate the sine and cosine:
+                sin_az = np.sin(np.deg2rad(init_pixel[:,7])*2.0)
+                cos_az = np.cos(np.deg2rad(init_pixel[:,7])*2.0)
+                fsine = interpolate.interp1d(tau_init, sin_az)
+                fcosine = interpolate.interp1d(tau_init, cos_az)
+                sin_az = fsine(new_tau)
+                cos_az = fcosine(new_tau)
+                azimuthmap = np.rad2deg(np.arctan2(sin_az, cos_az))/2.0
+                azimuthmap[azimuthmap<0] = azimuthmap[azimuthmap<0]+180
+                new_init_pixel[:,7] = azimuthmap.copy()
+
+                
                 tau_init = new_tau
                 init_pixel = new_init_pixel
+                
 
 
         model_init = [np.zeros_like(tau_init) for j in range(13)]
@@ -324,7 +346,7 @@ for currentPixel in range(0,totalPixel):
             init_pixel[0,8] = Initial_vmacro
         if Initial_micro is not None:
             init_pixel[:,3] = Initial_micro
-        
+
         # Assuming filling factor of 1 and no stray light:
         init_pixel[:,9] = 1.0
         init_pixel[:,10] = 0.0
@@ -353,7 +375,7 @@ for currentPixel in range(0,totalPixel):
 
 comm.Barrier()
 pprint('\n')
-pprint('==> Inversion finished. Now gathering the results ..... {0:2.3f} s'.format(time.time() - start_time))
+pprint('==> Calculations finished. Now gathering the results ..... {0:2.3f} s'.format(time.time() - start_time))
 pprint('-'*widthT)
 
 
