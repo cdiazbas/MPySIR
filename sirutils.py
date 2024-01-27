@@ -53,10 +53,6 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
 
         # We read the final synthetic profiles after the fitting:
         xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
-        perfiles = [xFull,stokesFull]
-        modelos = [magnitudes, ERRmagnitudes]
-        punto = [0,0]
-        resultadoSir.append([punto,modelos,perfiles])
 
         if sirmode == 'beforePixel':
             os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
@@ -66,6 +62,29 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
             os.remove('sir.chi')
         except:
             print('[INFO] sir.chi was not created by SIR.')
+
+        # If the inversion failed, we force the synthetic SIR mode:
+        if stokesFull[0][0] == 0.0:
+            os.system('cp sir.trol sirB.trol')
+            f = open('sir.trol','r')
+            lines = f.readlines()
+            f.close()
+            lines[0] = 'Number of cycles             :'+str(0)+'\n'
+
+            # Write the file:
+            f = open('sir.trol','w')
+            f.writelines(lines)
+            f.close()
+            os.system('echo sir.trol | '+sirfile+' >> pylog.txt')
+            os.system('cp sirB.trol sir.trol')
+            finalProfile = 'data.per'
+            xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
+            
+        perfiles = [xFull,stokesFull]
+        modelos = [magnitudes, ERRmagnitudes]
+        punto = [0,0]
+        resultadoSir.append([punto,modelos,perfiles])
+
 
 
 
@@ -114,12 +133,12 @@ def modify_malla(dictLines, x):
     f.close()
 
 #=============================================================================
-def modify_sirtrol_synthesis(Linesfile, Abundancefile, mu_obs):
+def modify_sirtrol_synthesis(Linesfile, Abundancefile, mu_obs, rootdir = 'invDefault/'):
     """
     Modifies the "sir.trol" file to change the number of nodes.
     """
     # Read the file:
-    f = open('invDefault/sir_.trol','r')
+    f = open(rootdir+'sir_.trol','r')
     lines = f.readlines()
     f.close()
 
@@ -130,7 +149,7 @@ def modify_sirtrol_synthesis(Linesfile, Abundancefile, mu_obs):
     lines[32] = 'mu=cos (theta)               :'+str(mu_obs)+'\n'
 
     # Write the file:
-    f = open('invDefault/sir.trol','w')
+    f = open(rootdir+'sir.trol','w')
     f.writelines(lines)
     f.close()
     print('[INFO] sir.trol updated with Linesfile and Abundancefile.')
@@ -705,3 +724,23 @@ def check_nodes(nodes_allowed, node_variable_list, node_names):
                     node_variable_i[i] = str(closest_lower_node)
                     node_variable_i = ','.join(node_variable_i)
             print('[INFO] Nodes in '+node_names[j]+' not allowed. Changing to '+str(node_variable_i))
+            
+#=============================================================================
+def fix_nan(y, x=None):
+    """
+    Interpolate the NaN values in an array
+    """
+    from scipy.interpolate import interp1d
+    if x is None:
+        x = np.arange(len(y))
+    nans = np.isnan(y)
+
+    interpolator = interp1d(
+        x[~nans],
+        y[~nans],
+        kind="linear",
+        fill_value="extrapolate",
+        assume_sorted=True,
+    )
+
+    return interpolator(x)

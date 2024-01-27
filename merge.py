@@ -19,14 +19,14 @@ def corrphi(azimuthmap):
 
 # ========================= MERGE
 # The first one is the baseline
-inversion_results = ['finalSIR100_cycle3_model.npy','finalSIR100_cycle1_model.npy'] 
+inversion_results = ['inv_original_newgrid/finalSIR_cycle2_model.npy','inv_original_newgrid/finalSIR_cycle1_model.npy'] 
 outputname = '_merged.npy'
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes =  fits.open(directory+"/sunspot_jmb_sir_synth_100.fits")[0].data
-observed_stokes = observed_stokes.transpose(2,3,1,0) # (x,y,lambda,stokes)
-observed_stokes.shape
+observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_newgrid_profiles.npy")
+observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
+print('observed_stokes.shape = ',observed_stokes.shape)
 
 
 # Load any inversion model as baseline

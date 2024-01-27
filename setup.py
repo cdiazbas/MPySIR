@@ -311,6 +311,20 @@ for currentPixel in range(0,totalPixel):
         # We write the initial model as hsraB.mod which is the default name for the initial model in SIR [ny, nx, ntau, npar]
         init_pixel = myInit_model[currentPixel,:,:]
         tau_init = myInit_model[currentPixel,:,0]
+        
+        # Fix any NaN value in the initial model:
+        if np.isnan(init_pixel).any():
+            for i in range(init_pixel.shape[1]):
+                if np.isnan(init_pixel[:,i]).any():
+                    if verbose:
+                        print('[INFO] NaN values found in the column '+str(i)+'. Fixing them ...')
+                    init_pixel[:,i] = sirutils.fix_nan(init_pixel[:,i])
+
+
+        # if the variable interpolate_factor exist, if not we define the variable:
+        if 'interpolate_factor' not in locals():
+            interpolate_factor = 1
+                
 
         # We interpolate the initial model in logtau if interpolate_factor > 1 only for synthesis:
         if sirmode == 'synthesis':
@@ -370,7 +384,8 @@ for currentPixel in range(0,totalPixel):
     remaining_time_str = str(remaining_time).split(".")[0]  # Exclude milliseconds from remaining time string
 
     if comm.rank == 0:
-        print('\r... {0:4.2f}% -> {1} ...'.format(percentage, remaining_time_str), end='', flush=True)
+        # print('\r... {0:4.2f}% -> {1} ...'.format(percentage, remaining_time_str), end='', flush=True)
+        print('\r... {0:4.2f}% -> {1}, end: {2}'.format(percentage, remaining_time_str, str(datetime.datetime.now() + remaining_time).split(".")[0]), end='', flush=True)
 
 
 comm.Barrier()

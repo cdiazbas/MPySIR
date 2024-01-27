@@ -91,7 +91,7 @@ def smooth(fileinput, fwhm_gaussian=0.0, size_median=0, suffix='_smoothed', skip
 
 
 if __name__ == "__main__":
-    fileinput = 'finalSIR_cycle1_model.npy'
+    fileinput = 'inv_original_newgrid/finalSIR_cycle1_model.npy'
     fwhm_gaussian = 0.5
     size_median = 0
     smooth(fileinput, fwhm_gaussian, size_median, suffix='_smoothed', skip=1)
