@@ -9,30 +9,34 @@ another pixel.
 
 # ========================= FINDBEST =========================
 # The first one is the baseline
-inversion_results = 'inv_original_newgrid/finalSIR_cycle3_model.npy'
+inversion_results = 'inv_degraded_100_000/finalSIR_cycle3_model.npy'
 outputname = '_fbest.npy'
 
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_newgrid_profiles.npy")
+# observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_newgrid_profiles.npy")
+observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_100.npy")
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
 # Number of pixels to fix:
-npix = 4*4000
-# npix = observed_stokes.shape[0]*observed_stokes.shape[1]
+npix = 10#4*4000
+# npix = int(0.01*observed_stokes.shape[0]*observed_stokes.shape[1])
 print('npix = ',npix)
 
 # Load the inversion model as baseline
-inversion_model = np.load(inversion_results, allow_pickle=True)
-# Same for the Stokes profiles:
-stokes = np.load(inversion_results[:-9]+'profiles.npy')
+inversion_model = np.load(inversion_results)
+stokes = np.load(inversion_results.replace('_model.npy', '_profiles.npy'))
 
+# Create a copy of the inversion and stokes where we will fix the worst pixels:
+inversion_model_final = inversion_model.copy()
+stokes_final = stokes.copy()
 
 # Calculate the chi2 maps:
 print("Calculate the initial chi2 map...")
 chi2map = np.sum((observed_stokes[:,:,:,:]-stokes[:,:,:,:])**2.0,axis=(2,3))/observed_stokes.shape[3]
+
 
 # Start fixing the worst pixels:
 print("Fixing the worst pixels...")
@@ -45,21 +49,33 @@ for i in tqdm(range(npix)):
     
     # Calculate the new chi2map for this pixel:
     ichi2map = np.sum((observed_stokes[index[0],index[1],:,:]-stokes[:,:,:,:])**2.0,axis=(2,3))/observed_stokes.shape[3]
+    
     # Find the pixel with the lowest chi2:
     index_min_chi2 = np.where(ichi2map == np.min(ichi2map))
+
     # Take only one pixel:
     index_min_chi2 = (index_min_chi2[0][0],index_min_chi2[1][0])
     
-    print("Fixing pixel: ",index, "(chi2: {0:1.1e})".format(chi2map[index[0],index[1]]))
-    print("with model for pixel: ",index_min_chi2, "(chi2: {0:1.1e})".format(ichi2map[index_min_chi2[0],index_min_chi2[1]]))
+    # Is index the same as index_min_chi2?
+    if index == index_min_chi2:
+        print('Skipping: ',index, "(chi2: {0:1.1e})".format(chi2map[index[0],index[1]]),'<--',index_min_chi2, "(chi2: {0:1.1e})".format(ichi2map[index_min_chi2[0],index_min_chi2[1]]))
+        continue
+    
+    print('Fixing: ',index, "(chi2: {0:1.1e})".format(chi2map[index[0],index[1]]),'<--',index_min_chi2, "(chi2: {0:1.1e})".format(ichi2map[index_min_chi2[0],index_min_chi2[1]]))
 
     # Set the inversion results 
-    inversion_model[index[0],index[1],:,:] = inversion_model[index_min_chi2[0],index_min_chi2[1],:,:]
-    stokes[index[0],index[1],:,:] = stokes[index_min_chi2[0],index_min_chi2[1],:,:]
+    inversion_model_final[index[0],index[1],:,:] = inversion_model[index_min_chi2[0],index_min_chi2[1],:,:]
+    stokes_final[index[0],index[1],:,:] = stokes[index_min_chi2[0],index_min_chi2[1],:,:]
 
+# DONE:
+print("DONE!")
 
 # Save the merged model:
-np.save(inversion_results[:-4]+outputname, inversion_model.astype(np.float32))
+np.save(inversion_results[:-4]+outputname, inversion_model_final.astype(np.float32))
 
 # Save the merged stokes:
-np.save(inversion_results[:-9]+'profiles'+outputname, stokes.astype(np.float32))
+np.save(inversion_results[:-9]+'profiles'+outputname, stokes_final.astype(np.float32))
+
+# Notify using telegram that the inversion has finished.
+import sirutils
+sirutils.notify_telegram("[MPySIR][findbest.py] Fixing the worst pixels has finished for "+inversion_results)

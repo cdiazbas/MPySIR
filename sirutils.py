@@ -744,3 +744,18 @@ def fix_nan(y, x=None):
     )
 
     return interpolator(x)
+
+
+#=============================================================================
+import os
+import requests
+
+def notify_telegram(message):
+    if 'TELEGRAM_TOKEN' in os.environ:
+        token = os.environ['TELEGRAM_TOKEN']
+        chat_id = os.environ['TELEGRAM_CHATID']
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
+        requests.get(url)
+    else:
+        # Nothing is displayed
+        pass
