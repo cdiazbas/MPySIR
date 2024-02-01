@@ -19,12 +19,12 @@ def corrphi(azimuthmap):
 
 # ========================= MERGE
 # The first one is the baseline
-inversion_results = ['inv_original_newgrid/finalSIR_cycle2_model.npy','inv_original_newgrid/finalSIR_cycle1_model.npy'] 
+inversion_results = ['inv_original/finalSIR_cycle3fast_model.npy','inv_original/finalSIR_cycle3_model_fbest.npy'] 
 outputname = '_merged.npy'
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_newgrid_profiles.npy")
+observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth.npy")
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
@@ -32,12 +32,12 @@ print('observed_stokes.shape = ',observed_stokes.shape)
 # Load any inversion model as baseline
 inversion_model_list = []
 for i in range(len(inversion_results)):
-    inversion_model_list.append(np.load(inversion_results[i], allow_pickle=True))
+    inversion_model_list.append(np.load(inversion_results[i]))
 
 # Same for the Stokes profiles:
 stokes_list = []
 for i in range(len(inversion_results)):
-    stokes_list.append(np.load(inversion_results[i][:-9]+'profiles.npy'))
+    stokes_list.append(np.load(inversion_results[i].replace('model','profiles')))
 
 
 # Calculate the chi2 maps:
@@ -65,7 +65,7 @@ for ip in tqdm(range(inversion_model.shape[3])):
 inversion_model[:,:,:,7] = corrphi(inversion_model[:,:,:,7])
             
 # Save the merged model:
-np.save(inversion_results[0][:-4]+outputname, inversion_model.astype(np.float32))
+np.save(inversion_results[0].replace('.npy',outputname), inversion_model.astype(np.float32))
 
 
 # Set first file as baseline:
@@ -78,4 +78,4 @@ for ix in tqdm(range(stokes.shape[0])):
         stokes[ix,iy,:,:] = stokes_list[index_min_chi2[ix,iy]][ix,iy,:,:]
 
 # Save the merged stokes:
-np.save(inversion_results[0][:-9]+'profiles'+outputname, stokes.astype(np.float32))
+np.save(inversion_results[0].replace('model','profiles').replace('.npy',outputname), stokes.astype(np.float32))

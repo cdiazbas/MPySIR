@@ -9,7 +9,7 @@ another pixel.
 
 # ========================= FINDBEST =========================
 # The first one is the baseline
-inversion_results = 'inv_degraded_100_000/finalSIR_cycle3_model.npy'
+inversion_results = 'inv_original_n2-3/finalSIR_cycle1_model.npy'
 outputname = '_fbest.npy'
 
 
@@ -21,13 +21,13 @@ observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
 # Number of pixels to fix:
-npix = 10#4*4000
+npix = 4000#4*4000
 # npix = int(0.01*observed_stokes.shape[0]*observed_stokes.shape[1])
 print('npix = ',npix)
 
 # Load the inversion model as baseline
 inversion_model = np.load(inversion_results)
-stokes = np.load(inversion_results.replace('_model.npy', '_profiles.npy'))
+stokes = np.load(inversion_results.replace('model', 'profiles'))
 
 # Create a copy of the inversion and stokes where we will fix the worst pixels:
 inversion_model_final = inversion_model.copy()
@@ -58,10 +58,10 @@ for i in tqdm(range(npix)):
     
     # Is index the same as index_min_chi2?
     if index == index_min_chi2:
-        print('Skipping: ',index, "(chi2: {0:1.1e})".format(chi2map[index[0],index[1]]),'<--',index_min_chi2, "(chi2: {0:1.1e})".format(ichi2map[index_min_chi2[0],index_min_chi2[1]]))
+        print('Skipping: ',index,'no better pixel found.')
         continue
     
-    print('Fixing: ',index, "(chi2: {0:1.1e})".format(chi2map[index[0],index[1]]),'<--',index_min_chi2, "(chi2: {0:1.1e})".format(ichi2map[index_min_chi2[0],index_min_chi2[1]]))
+    print('Fixing: ',index,'<--',index_min_chi2, "(Dchi2: {0:1.1e})".format(chi2map[index[0],index[1]]-ichi2map[index_min_chi2[0],index_min_chi2[1]]))
 
     # Set the inversion results 
     inversion_model_final[index[0],index[1],:,:] = inversion_model[index_min_chi2[0],index_min_chi2[1],:,:]
@@ -71,10 +71,10 @@ for i in tqdm(range(npix)):
 print("DONE!")
 
 # Save the merged model:
-np.save(inversion_results[:-4]+outputname, inversion_model_final.astype(np.float32))
+np.save(inversion_results.replace('.npy',outputname), inversion_model_final.astype(np.float32))
 
 # Save the merged stokes:
-np.save(inversion_results[:-9]+'profiles'+outputname, stokes_final.astype(np.float32))
+np.save(inversion_results.replace('model','profiles').replace('.npy',outputname), stokes_final.astype(np.float32))
 
 # Notify using telegram that the inversion has finished.
 import sirutils
