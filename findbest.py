@@ -9,19 +9,24 @@ another pixel.
 
 # ========================= FINDBEST =========================
 # The first one is the baseline
-inversion_results = 'inv_original_n2-3/finalSIR_cycle1_model.npy'
+inversion_results = 'inv_degraded_100_000_n2e-3/finalSIR_cycle3_model.npy'
+# inversion_results = 'inv_degraded_100_000_n2e-3/finalSIR_cycle1_model.npy'
 outputname = '_fbest.npy'
 
 
 # Observed profiles
-directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-# observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_newgrid_profiles.npy")
-observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_100.npy")
+directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data/"
+# stokes = "sunspot_jmb_sir_synth_100.npy"
+# stokes_name = "sunspot_jmb_sir_synth_n2e-3.npy"
+stokes_name = "sunspot_jmb_sir_synth_100_n2e-3.npy"
+observed_stokes = np.load(directory+stokes_name)
+print("Using observed profiles: ",directory+stokes_name)
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
 # Number of pixels to fix:
-npix = 4000#4*4000
+npix = 4*4000#4*4000
+# npix = 400
 # npix = int(0.01*observed_stokes.shape[0]*observed_stokes.shape[1])
 print('npix = ',npix)
 
@@ -78,4 +83,4 @@ np.save(inversion_results.replace('model','profiles').replace('.npy',outputname)
 
 # Notify using telegram that the inversion has finished.
 import sirutils
-sirutils.notify_telegram("[MPySIR][findbest.py] Fixing the worst pixels has finished for "+inversion_results)
+sirutils.notify_telegram("[MPySIR][findbest.py] Fixing the worst pixels has finished for "+inversion_results+" and the observations "+stokes_name+".")
