@@ -224,7 +224,7 @@ def get_ntau():
     Get the number of points in the wavelength axis
     """
     # Read the file:
-    f = open('invDefault/hsraB.mod','r')
+    f = open('invDefault/hsraB_.mod','r')
     lines = f.readlines()
     f.close()
     
@@ -242,11 +242,12 @@ def calculate_divisors(n):
     return divisors
 
 #=============================================================================
-def calculate_nodes():
+def calculate_nodes(ntau=None):
     """
     The number of nodes is calculated as the minimum number of divisors of ntau-1
     """
-    ntau = get_ntau()
+    if ntau is None:
+        ntau = get_ntau()
     divisors = calculate_divisors(ntau-1)
     
     # Transform to array + 1:
@@ -541,7 +542,7 @@ def plotmfit(main_file='hsraB.mod',
              synth_file=None,
              error_model=True,
              index_to_plot=[0, 3, 4, 5],
-             labels=['$T$ [K]', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ [G]', r'$v_{LOS}$' + ' [m/s]', r'$\gamma$ [deg]'],
+             labels=['$T$ [K]', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ [G]', r'$v_{LOS}$' + ' [cm/s]', r'$\gamma$ [deg]'],
              color1='k',
              color2='m',
              margin=[0.2, 0.3, 0.3, 0.3]):
@@ -656,7 +657,7 @@ def checkParamsfile(Paramsfile):
             shutil.copy(Paramsfile, 'invDefault/'+Paramsfile)
             print('[INFO] Copied to invDefault/'+Paramsfile)
         except FileNotFoundError:
-            print("[INFO] File not found! Exitting...")
+            print("[INFO] The file "+Paramsfile+" does not exist. Exiting.")
             sys.exit(1)
                 
     else:

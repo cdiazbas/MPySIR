@@ -85,16 +85,7 @@ if comm.rank == 0:
         # Modify the "sir.trol" file to change the inversion parameters.
         sirutils.modify_sirtrol(Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, 
                                 Invert_macroturbulence, Linesfile, Abundancefile,mu_obs, Nodes_microturbulence, weightStokes)
-        
-        # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
-        nodes_allowed = sirutils.calculate_nodes()
-        # Append node 1 at the beginning:
-        nodes_allowed = [0, 1] + list(nodes_allowed)
-        print('[INFO] Nodes allowed = '+str(nodes_allowed))
-        
-        # Check if the number of nodes is allowed:
-        sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
-        
+
     # Modify the vmicro and vmacro:
     if Initial_vmacro is not None:
         # Modify the initial model with the initial macro velocity:
@@ -201,6 +192,17 @@ if comm.rank == 0:
         # Data dimensions:
         height, width, nlogtau, nparams = init_model.shape
 
+
+        # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
+        nodes_allowed = sirutils.calculate_nodes(nlogtau)
+        # Append node [0,1] at the beginning:
+        nodes_allowed = [0, 1] + list(nodes_allowed)
+        print('[INFO] Nodes allowed = '+str(nodes_allowed))
+        
+        # Check if the number of nodes is allowed:
+        sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
+        
+        
         # Now we divide the image in portions and send them to the nodes. For that,
         # we can flatten the X&Y dimensions and divide them with array_split:
         totalpixels = height*width
@@ -223,7 +225,19 @@ if comm.rank == 0:
         myInit_model = np.copy(init_model[myrange,:,:])
         if verbose: print('Node 0 received new init model -> '+str(myInit_model.shape))
         del init_model # We delete the original image to save memory.
+    
+    
+    # ================================================= PER PIXEL INVERSION
+    if sirmode == 'perPixel':
+        # SIR will only allow to use a number of nodes which is divisor of ntau-1, so we need to modify the numnber of nodes:
+        nodes_allowed = sirutils.calculate_nodes()
+        # Append node [0,1] at the beginning:
+        nodes_allowed = [0, 1] + list(nodes_allowed)
+        print('[INFO] Nodes allowed = '+str(nodes_allowed))
         
+        # Check if the number of nodes is allowed:
+        sirutils.check_nodes(nodes_allowed, [Nodes_temperature, Nodes_magneticfield, Nodes_LOSvelocity, Nodes_gamma, Nodes_phi, Nodes_microturbulence], node_names=['temperature', 'magnetic field', 'LOS velocity', 'inclination', 'azimuth', 'microturbulence'])
+            
     
 if comm.rank != 0:
     
@@ -366,6 +380,8 @@ for currentPixel in range(0,totalPixel):
         init_pixel[:,10] = 0.0
         
         sirutils.write_continue_model(tau_init, model_init, init_pixel, final_filename='hsraB.mod',apply_constraints=apply_constraints)
+
+
 
 
     # +++++++++ Run SIR +++++++++
