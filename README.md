@@ -15,7 +15,7 @@ SIR inversions: MPI implementation with python
 ## Input and output formats
 
 - The input data is expected to be FITS or NUMPY files with no specific order of the dimensions. This information is added in the `config.py` file.
-- The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: $\log(\tau_{500})$ (logarithm of the continuum optical depth at 500nm), Temperature (K), Electron pressure (dyn/cm^2), Microturbulent velocity (cm/s), Magnetic field strength (G), Line-of-sight velocity (cm/s), Inclination angle of the magnetic field vector (deg), Azimuthal angle of the magnetic field vector (deg), Macroturbulent velocity (km/s), Filling factor, Stray light (fraction), $\chi^2$.
+- The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: $\log(\tau_{500})$ (logarithm of the continuum optical depth at 500nm), Temperature ($\rm K$), Electron pressure ($\rm dyn/cm^2$), Microturbulent velocity ($\rm cm/s$), Magnetic field strength ($\rm G$), Line-of-sight velocity ($\rm cm/s$), Inclination angle of the magnetic field vector (deg), Azimuthal angle of the magnetic field vector (deg), Macroturbulent velocity ($\rm km/s$), Filling factor, Stray light (fraction), $\chi^2$.
 
 
 ## Repository Structure
@@ -30,6 +30,7 @@ The repository structure is organized as follows:
 - `clean.py`: Python script to clean up the output files if needed.
 - `allmaps.py`: Python script to produce some quick plots of the inversion results.
 - `merge.py`: Python script to combine different inversion results according to the quality of the fit.
+- `findbest.py`: Python script to improve the inversion results by finding the other better solutions.
 - `invDefault`: Folder containing the default inversion configuration files.
 - `nextcycle.py`: Python script to filter the inversion results and prepare for the next cycle.
 - `requirements.txt`: Lists all Python dependencies required.
