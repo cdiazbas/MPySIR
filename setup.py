@@ -467,7 +467,6 @@ if comm.rank == 0 and not test1pixel:
     clean()
 
 if comm.rank == 0:
-    print('Sending telegram notification ...')
     # Notify using telegram that the inversion has finished.
     sirutils.notify_telegram("[MPySIR] The inversion has finished in "+str(datetime.timedelta(seconds=total_time))+" at "+str(datetime.datetime.now())+" using "+str(comm.size)+" cores, using the machine "+os.uname()[1]+" and producing the model "+outputfile)
     # It only works if token and chat_id are defined in the environment variables.
