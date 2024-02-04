@@ -542,7 +542,7 @@ def plotmfit(main_file='hsraB.mod',
              synth_file=None,
              error_model=True,
              index_to_plot=[0, 3, 4, 5],
-             labels=['$T$ [K]', r'$P_e$' + ' [dyn cm^-3]', r'$v_{mic}$' + ' [cm/s]', '$B$ [G]', r'$v_{LOS}$' + ' [cm/s]', r'$\gamma$ [deg]'],
+             labels=['$T$ [K]', r'$P_e$' + r' [dyn/cm$^2$]', r'$v_{mic}$' + ' [cm/s]', '$B$ [G]', r'$v_{LOS}$' + ' [km/s]', r'$\Theta_B$ [deg]'],
              color1='k',
              color2='m',
              margin=[0.2, 0.3, 0.3, 0.3]):
@@ -569,6 +569,12 @@ def plotmfit(main_file='hsraB.mod',
         # Plot the data
         plt.subplot(1, num_plots, i + 1)
         quantity0, quantity1 = data[index], data2[index]
+        
+        # if vlos, convert to km/s
+        if index == 4:
+            quantity0 = quantity0 / 1e5
+            quantity1 = quantity1 / 1e5
+        
         plt.plot(tau, quantity0, color1, lw=1.0)
         plt.plot(tau2, quantity1, color2, lw=1.0)
 

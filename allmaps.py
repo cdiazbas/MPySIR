@@ -32,11 +32,30 @@ def corrphi(azimuthmap):
     azimuthmap[azimuthmap<0] = azimuthmap[azimuthmap<0]+180
     return azimuthmap
 
+# ==================================================================== COLORBAR
+def add_colorbar(im, aspect=20, pad_fraction=0.5, nbins=5, **kwargs):
+    """Add a vertical color bar to an image plot."""
+    from mpl_toolkits import axes_grid1
+    divider = axes_grid1.make_axes_locatable(im.axes)
+    width = axes_grid1.axes_size.AxesY(im.axes, aspect=1./aspect)
+    pad = axes_grid1.axes_size.Fraction(pad_fraction, width)
+    current_ax = plt.gca()
+    cax = divider.append_axes("right", size=width, pad=pad)
+    plt.sca(current_ax)
+    from matplotlib import ticker
+    cb = im.axes.figure.colorbar(im, cax=cax, **kwargs)
+    if nbins is not None:
+        tick_locator = ticker.MaxNLocator(nbins=nbins)
+        cb.locator = tick_locator
+        cb.update_ticks()
+    return cb
+
+
 # ========================= PLOT 1 MAP
 def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra=''):
 
     cmapArray = ['gray','gray','gray','bone','bone','seismic','Spectral_r',phimap,'bone','gray','gray','cubehelix']
-    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$','p',r'${\rm v\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v\ [cm/s]}$',r'${\rm \gamma\ [d]}$',r'${\rm \phi\ [d]}$','vmacro','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
+    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$',r'$P_e$ [dyn/cm$^2$]',r'${\rm v_{micro}\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v_{los}\ [km/s]}$',r'${\rm \Theta_B\ [d]}$',r'${\rm \Phi_B\ [d]}$',r'${\rm v_{macro}\ [km/s]}$','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
     magFile = ['_LOGTAU','_TEMP','_PGAS','_VMICRO','_B','_VLOS','_INCLINATION','_AZIMUTH','_VMACRO','_FILLING','_ALPHA','_CHI2']
 
     # ========================= MAP
@@ -61,6 +80,9 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
     # Fix the azimuth values so that they are in the range [0,180]
     if parameter == 7: param2plot = corrphi(param2plot)
+    
+    # LOS velocity in km/s
+    if parameter == 5: param2plot = param2plot/1e5
 
     # Vmin and Vmax for the plot:
     vmini = np.mean(param2plot)-3*np.std(param2plot)
@@ -80,10 +102,10 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     # Plot the map associated to the parameter:
     ratio = param2plot.shape[1]/param2plot.shape[0]
     plt.figure(figsize=(ratio*4,4))
-    plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='nearest',vmin=vmini,vmax=vmaxi)
-    plt.xlabel('X Axis [pix]')
-    plt.ylabel('Y Axis [pix]')
-    cb = plt.colorbar()
+    im = plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='nearest',vmin=vmini,vmax=vmaxi)
+    plt.xlabel('X axis [pix]')
+    plt.ylabel('Y axis [pix]')
+    cb = add_colorbar(im)
     loglabel = r'${\rm log(\tau)=}$'
     cb.set_label(r""+magTitle[parameter]+r", "+loglabel+"{0}".format(logTau), labelpad=8., y=0.5, fontsize=12.)
 
@@ -96,8 +118,8 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR100_cycle1_model.npy'
-extra = '_cycle1_100'
+inversion_model = 'finalSIR_cycle1_model.npy'
+extra = '_cycle1'
 index = 14 # 14 corresponds to logtau = 0.0, 24 to logtau=-1.0
 
 rangeparams = [1,2,4,5,6,7,8,11]
