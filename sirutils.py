@@ -508,7 +508,7 @@ def plotper(main_file='data.per',
             data = stokes0[sParam][x_range]
             if sParam > 0:  # Apply scaling factor of 100 to Q, U, and V parameters
                 data = data * 100
-            plt.plot(x0A[x_range], data, color1, lw=1.0)
+            plt.plot(x0A[x_range], data, color1, lw=1.0, label='Observed profile')
 
             # Customize the plot
             plt.xlabel(r'$\Delta\lambda$ [$\AA$]', fontsize=12)
@@ -522,7 +522,7 @@ def plotper(main_file='data.per',
             synth_data = stokes[sParam][x_range]
             if sParam > 0:  # Apply scaling factor of 100 to Q, U, and V parameters
                 synth_data = synth_data * 100
-            plt.plot(xA[x_range], synth_data, color2, lw=1.0)
+            plt.plot(xA[x_range], synth_data, color2, lw=1.0, label='Synthetic profile')
             
             if sParam == 0:
                 plt.ylim(y_range_min[sParam], np.max(data) * 1.05)
@@ -532,6 +532,7 @@ def plotper(main_file='data.per',
 
     # Save the figure
     plt.tight_layout()
+    plt.legend(loc='best')
     output_file = 'P' + synth_file[:-4] + '.pdf'
     plt.savefig(output_file, bbox_inches='tight')
     print(output_file + ':: SAVED')

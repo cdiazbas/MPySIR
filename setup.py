@@ -151,6 +151,14 @@ if comm.rank == 0:
         totalpixels = height*width
         print('[INFO] Total pixels in data: '+str(totalpixels)+' (height: '+str(height)+' x width: '+str(width)+')')
         listofpixels = np.arange(totalpixels)
+        
+        # Redefine comm.size so that it is not larger than the number of pixels:
+        if comm.size > totalpixels:
+            # Print and exit:
+            print('[ERROR] The number of nodes is larger than the number of pixels. Exiting ...')
+            # Exit all the nodes:
+            comm.Abort()
+        
         listofparts = np.array_split(listofpixels, comm.size)
         
         # We need to flatten the image to send it to the nodes, by

@@ -108,9 +108,12 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     im = plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='nearest',vmin=vmini,vmax=vmaxi)
     plt.xlabel('X axis [pix]')
     plt.ylabel('Y axis [pix]')
+    plt.locator_params(axis='x', nbins=5)
+    plt.locator_params(axis='y', nbins=5)
+    plt.grid(True, linestyle='-', color='black', alpha=0.2)
     cb = add_colorbar(im)
     loglabel = r'${\rm log(\tau)=}$'
-    cb.set_label(r""+magTitle[parameter]+r", "+loglabel+"{0}".format(logTau), labelpad=8., y=0.5, fontsize=12.)
+    cb.set_label(r""+magTitle[parameter]+r", "+loglabel+r"${0}$".format(logTau), labelpad=8., y=0.5, fontsize=12.)
 
     plt.savefig(magFile[parameter]+'_log{0:02.2f}{1}.pdf'.format(logTau,extra), bbox_inches='tight')
     
@@ -123,7 +126,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 inversion_model = 'finalSIR_cycle1_model.npy'
 extra = '_cycle1'
-logtau = 0.0
+logtau = -1.0
 
 rangeparams = [1,2,4,5,6,7,8,11]
 for parameter in rangeparams:
