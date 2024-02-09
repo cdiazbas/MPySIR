@@ -14,7 +14,7 @@ This module contains functions to run SIR and modify the SIR files.
 
 
 #=============================================================================
-def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
+def sirexe(comm, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
     """
     Runs SIR for a given pixel.
     """
@@ -22,49 +22,47 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
     # We run SIR
     os.system('echo sir.trol | '+sirfile+' > pylog.txt')
 
+
     # ====================================================
     # INVERSION MODE
     if sirmode != 'synthesis':
         # Last files written by SIR:
         file_list = glob.glob("*.mod")
+        # Sort the files by date
         file_list.sort(key=os.path.getmtime, reverse=True)
         finalModel = os.path.basename(file_list[0])
-        finalProfile = finalModel[0:-4]+'.per'
- 
-        tau, magnitudes = lmodel8(finalModel,verbose=False)
-        ERRtau, ERRmagnitudes = lmodel8(finalModel[0:-4]+'.err',verbose=False)
-        magnitudes.insert(0,tau)
-        ERRmagnitudes.insert(0,ERRtau)    
+        finalModelerr = finalModel.replace('.mod','.err')
+        finalProfile = finalModel.replace('.mod','.per')
+        chi2file = 'sir.chi'
 
-        # We add the chi2 value to the list of parameters:
+
+        # Check if SIR produced successfully: final model, the error model, synthetic profiles, and chi2 file.
+        files_exist = all(os.path.exists(file) for file in [finalProfile, finalModelerr, chi2file])
+        tau, magnitudes = lmodel8(finalModel, verbose=False)
+        ERRmagnitudes = [np.zeros_like(m) for m in magnitudes] if not files_exist else lmodel8(finalModelerr, verbose=False)[1]
+        magnitudes = [tau] + magnitudes
+        ERRmagnitudes = [tau] + ERRmagnitudes
+
+        if files_exist:
+            with open(chi2file, 'r') as file: 
+                chi2 = float(file.readlines()[-1].split()[1])
+            os.remove(chi2file)
+            xFull, stokesFull, _ = lperfil(finalProfile, verbose=False)
+        else:
+            chi2 = 1000.0
+            xFull = x.copy()
+            stokesFull = [np.zeros_like(x) for _ in range(4)]
+
         if chi2map:
-            try:
-                with open('sir.chi', 'r') as file:
-                    last_line = file.readlines()[-1]
-                chi2 = float(last_line.split()[1])
-            except:
-                # If SIR does not write the chi2 file
-                chi2 = 1000.0
-            # Add the chi2 value to the list of parameters:
-            lenmag = len(magnitudes)
-            magnitudes.insert(lenmag,chi2)
-            ERRmagnitudes.insert(lenmag,chi2)
-
-
-        # We read the final synthetic profiles after the fitting:
-        xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
-
-        if sirmode == 'beforePixel':
-            os.system('rm hsraB.mod'); os.system('cp hsraB_3.mod hsraB.mod')
-
-        # Clean some files:
-        try:
-            os.remove('sir.chi')
-        except:
-            print('[INFO] sir.chi was not created by SIR.')
-
-        # If the inversion failed, we force the synthetic SIR mode:
-        if stokesFull[0][0] == 0.0:
+            magnitudes.append(chi2)
+            ERRmagnitudes.append(chi2)
+        
+        
+        # If the inversion failed (or does not improve), we force the synthetic SIR mode:
+        if stokesFull[0][0] == 0.0:            
+            # print('Problem in rank:',comm.rank)
+            # comm.Abort()
+            
             os.system('cp sir.trol sirB.trol')
             f = open('sir.trol','r')
             lines = f.readlines()
@@ -80,10 +78,10 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
             finalProfile = 'data.per'
             xFull, stokesFull, [nL,posi,nN] = lperfil(finalProfile,verbose=False)
             
-        perfiles = [xFull,stokesFull]
-        modelos = [magnitudes, ERRmagnitudes]
-        punto = [0,0]
-        resultadoSir.append([punto,modelos,perfiles])
+        profiles = [xFull,stokesFull]
+        models = [magnitudes, ERRmagnitudes]
+        pixel = [0,0]  # Not used but keep it for compatibility with the old code
+        resultadoSir.append([pixel,models,profiles])
 
 
 
@@ -103,8 +101,8 @@ def sirexe(rank, sirfile, resultadoSir, sirmode, chi2map = True, x=None):
             stokesFull = [np.zeros_like(x) for i in range(4)]
             perfiles = [xFull,stokesFull]
 
-        punto = [0,0]
-        resultadoSir.append([punto,punto,perfiles])
+        pixel = [0,0]
+        resultadoSir.append([pixel,pixel,perfiles])
 
 
 
@@ -561,8 +559,10 @@ def plotmfit(main_file='hsraB.mod',
     # Load data
     tau, data = lmodel8(main_file, verbose=False)
     tau2, data2 = lmodel8(synth_file, verbose=False)
-    if error_model:
-        _, error_data = lmodel8(synth_file[:-4] + '.err')
+    if error_model and os.path.exists(synth_file.replace('.mod', '.err')):
+        _, error_data = lmodel8(synth_file.replace('.mod', '.err'), verbose=False)
+    else:
+        error_model = False
 
     plt.figure(figsize=(4 * num_plots, 5))
 

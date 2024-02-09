@@ -33,7 +33,7 @@ def corrphi(azimuthmap):
     return azimuthmap
 
 # ==================================================================== COLORBAR
-def add_colorbar(im, aspect=20, pad_fraction=0.5, nbins=5, **kwargs):
+def add_colorbar(im, aspect=40, pad_fraction=0.5, nbins=5, **kwargs):
     """Add a vertical color bar to an image plot."""
     from mpl_toolkits import axes_grid1
     divider = axes_grid1.make_axes_locatable(im.axes)
@@ -52,27 +52,26 @@ def add_colorbar(im, aspect=20, pad_fraction=0.5, nbins=5, **kwargs):
 
 
 # ========================= PLOT 1 MAP
-def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra=''):
+def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', extra='',zoom= 1.0):
 
-    cmapArray = ['gray','gray','gray','bone','bone','seismic','Spectral_r',phimap,'bone','gray','gray','cubehelix']
-    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$',r'$P_e$ [dyn/cm$^2$]',r'${\rm v_{micro}\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v_{los}\ [km/s]}$',r'${\rm \Theta_B\ [d]}$',r'${\rm \Phi_B\ [d]}$',r'${\rm v_{macro}\ [km/s]}$','filling factor','stray-light (alpha)',r'${\rm \chi^2}$']
-    magFile = ['_LOGTAU','_TEMP','_PGAS','_VMICRO','_B','_VLOS','_INCLINATION','_AZIMUTH','_VMACRO','_FILLING','_ALPHA','_CHI2']
+    cmapArray = ['gray','gray','gray','bone','bone','seismic','Spectral_r',phimap,'bone','gray','gray','cubehelix','gray']
+    magTitle = [r'${\rm log(\tau)=}$',r'${\rm T\ [K]}$',r'$P_e$ [dyn/cm$^2$]',r'${\rm v_{micro}\ [cm/s]}$',r'${\rm B\ [G]}$',r'${\rm v_{los}\ [km/s]}$',r'${\rm \Theta_B\ [d]}$',r'${\rm \Phi_B\ [d]}$',r'${\rm v_{macro}\ [km/s]}$','filling factor','stray-light (alpha)',r'${\rm \chi^2}$',r'${\rm B_{LOS}\ [G]}$']
+    magFile = ['_LOGTAU','_TEMP','_PGAS','_VMICRO','_B','_VLOS','_INCLINATION','_AZIMUTH','_VMACRO','_FILLING','_ALPHA','_CHI2','_BLOS']
 
     # ========================= MAP
     # Load the inversion model
-    inversion_model = np.load(inversion_model, allow_pickle=True)
-    # Check that the parameter is in range:
-    if parameter in range(inversion_model.shape[3]):
-        pass
-    else:
-        print('Error: parameter out of range')
-        return 0
-    
+    inversion_model = np.load(inversion_model)
+
     # Search for the index of the logtau value:
     indexlogTau = np.argmin(np.abs(inversion_model[0,0,:,0]-indexlogTau))
     
-    # Extract the parameter to plot:
-    param2plot = inversion_model[:,:,indexlogTau,parameter]
+    # If parameter is 12, then B_LOS is plotted:
+    if parameter == 12:
+        param2plot = inversion_model[:,:,indexlogTau,4]*np.cos(np.deg2rad(inversion_model[:,:,indexlogTau,6]))
+        
+    else:
+        # Extract the parameter to plot:
+        param2plot = inversion_model[:,:,indexlogTau,parameter]
     
     # Print the logtau value at that index:
     logTau = inversion_model[0,0,indexlogTau,0]
@@ -104,7 +103,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
     # Plot the map associated to the parameter:
     ratio = param2plot.shape[1]/param2plot.shape[0]
-    plt.figure(figsize=(ratio*4,4))
+    plt.figure(figsize=(ratio*4*zoom,4*zoom))
     im = plt.imshow(param2plot,cmap=cmapArray[parameter],origin='lower',interpolation='nearest',vmin=vmini,vmax=vmaxi)
     plt.xlabel('X axis [pix]')
     plt.ylabel('Y axis [pix]')
@@ -113,7 +112,7 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
     plt.grid(True, linestyle='-', color='black', alpha=0.2)
     cb = add_colorbar(im)
     loglabel = r'${\rm log(\tau)=}$'
-    cb.set_label(r""+magTitle[parameter]+r", "+loglabel+r"${0}$".format(logTau), labelpad=8., y=0.5, fontsize=12.)
+    cb.set_label(r""+magTitle[parameter]+r", "+loglabel+r" ${0}$".format(logTau), labelpad=8., y=0.5, fontsize=12.)
 
     plt.savefig(magFile[parameter]+'_log{0:02.2f}{1}.pdf'.format(logTau,extra), bbox_inches='tight')
     
@@ -124,10 +123,10 @@ def plot1map(indexlogTau, parameter, inversion_model = 'finalSIR_model.npy', ext
 
 
 
-inversion_model = 'finalSIR_cycle1_model.npy'
-extra = '_cycle1'
+inversion_model = 'finalSIR_cycle4_model.npy'
+extra = '_cycle3'
 logtau = -1.0
 
-rangeparams = [1,2,4,5,6,7,8,11]
+rangeparams = [1,2,4,5,6,7,8,11,12]
 for parameter in rangeparams:
-    plot1map(logtau,parameter, inversion_model = inversion_model, extra=extra)
+    plot1map(logtau,parameter, inversion_model = inversion_model, extra=extra,zoom=2.0)

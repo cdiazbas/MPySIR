@@ -187,9 +187,12 @@ if comm.rank == 0:
         print('[INFO] Using model: '+inputmodel)
 
         # We load the model:
-        init_model = np.load(inputmodel)
-        # If it was created with inv2model routine it should have the axes: [ny, nx, nlogtau, npar]
-
+        if os.path.isfile(inputmodel):
+            init_model = np.load(inputmodel)
+            # If it was created with inv2model routine it should have the axes: [ny, nx, nlogtau, npar]
+        else:
+            print('[ERROR] Model file '+inputmodel+' not found. Exiting ...')
+            comm.Abort()
         
         # If fov is not None, we extract a portion of the image:
         if fov is not None:
@@ -393,7 +396,7 @@ for currentPixel in range(0,totalPixel):
 
 
     # +++++++++ Run SIR +++++++++
-    sirutils.sirexe(comm.rank, sirfile, resultadoSir, sirmode, chi2map, x)
+    sirutils.sirexe(comm, sirfile, resultadoSir, sirmode, chi2map, x)
 
     if test1pixel:
         sirutils.plotper()  # Plots the profiles if we are testing 1 pixel
