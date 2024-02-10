@@ -417,7 +417,8 @@ for currentPixel in range(0,totalPixel):
 
 comm.Barrier()
 pprint('\n')
-pprint('==> Calculations finished. Now gathering the results ..... {0:2.3f} s'.format(time.time() - start_time))
+total_time = time.time() - start_time
+pprint('[INFO] Calculations finished in '+str(datetime.timedelta(seconds=total_time)).split(".")[0])
 pprint('-'*widthT)
 
 
@@ -442,7 +443,11 @@ else:
     # We receive the results from the rest of the nodes:
     finalSir = []
     finalSir.append(resultadoSir)
-    for nodei in range(1, comm.size):
+    
+    # Use tqdm to show the progress bar:
+    print('[INFO] Gathering results from all the nodes:')
+    from tqdm import tqdm
+    for nodei in tqdm(range(1, comm.size)):
         vari = comm.recv(source = nodei, tag = 0)
         finalSir.append(vari)
     os.chdir(curr)
@@ -479,5 +484,5 @@ if comm.rank == 0 and not test1pixel:
 
 if comm.rank == 0:
     # Notify using telegram that the inversion has finished.
-    sirutils.notify_telegram("[MPySIR] The inversion has finished in "+str(datetime.timedelta(seconds=total_time))+" at "+str(datetime.datetime.now())+" using "+str(comm.size)+" cores, using the machine "+os.uname()[1]+" and producing the model "+outputfile)
+    sirutils.notify_telegram("[MPySIR] The inversion has finished in "+str(datetime.timedelta(seconds=total_time)).split(".")[0]+" at "+str(datetime.datetime.now())+" using "+str(comm.size)+" cores, using the machine "+os.uname()[1]+" and producing the model "+outputfile)
     # It only works if token and chat_id are defined in the environment variables.

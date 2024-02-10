@@ -359,7 +359,14 @@ def create_modelmap(inversion, inversion_file, npar = 12):
     # Make sure that the parameters are within the limits:
     par = 6 # The inclination angle
     modelmap[:, :, :, par] = np.clip(modelmap[:, :, :, par], 0.0, 180.0)
-        
+    
+    # Extract the directory:
+    directory = os.path.dirname(inversion_file)
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # Save the file:
     if inversion_file[-4:] == '.npy':
         np.save(inversion_file[:-4]+'_model.npy', modelmap.astype(np.float32))
@@ -398,6 +405,13 @@ def create_profilemap(inversion, inversion_file):
     for stoke in tqdm(range(4)):
         profilemap[:, :, :, stoke] = readSIRProfileMap(inversion, stoke)
     
+    # Extract the directory:
+    directory = os.path.dirname(inversion_file)
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # Save the file:
     if inversion_file[-4:] == '.npy':
         np.save(inversion_file[:-4]+'_profiles.npy', profilemap.astype(np.float32))
