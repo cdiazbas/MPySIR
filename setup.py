@@ -132,12 +132,17 @@ if comm.rank == 0:
         image = rearrange(image, original_axis+'-> ny nx ns nw')
         pprint('[INFO] After - Image shape: '+str(image.shape))
 
+        # ns should be 1 or 4, if not we need to stop the code:
+        if image.shape[2] != 4:
+            print('[ERROR] The number of Stokes parameters is not 4. Exiting ...')
+            # Exit all the nodes:
+            comm.Abort()
 
         # If fov is not None, we extract a portion of the image:
         if fov is not None:
             xstart, ystart = int(fov_start.split(',')[0]), int(fov_start.split(',')[1])
             image = image[0+xstart:int(fov.split(',')[0])+xstart,0+ystart:int(fov.split(',')[1])+ystart,:,:]
-        
+
         # If skip is not 1, we skip pixels:
         if skip != 1:
             image = image[::skip,::skip,:,:]
@@ -163,7 +168,7 @@ if comm.rank == 0:
         
         # We need to flatten the image to send it to the nodes, by
         # moving the X&Y dimensions to the first axis and then flattening:
-        image = image.reshape((totalpixels, nStokes, nLambdas))    
+        image = image.reshape((totalpixels, nStokes, nLambdas)) 
         
         # Print the list of parts for each node:
         for nodei in range(comm.size):
@@ -483,6 +488,9 @@ if comm.rank == 0 and not test1pixel:
     clean()
 
 if comm.rank == 0:
+    if sirmode != 'synthesis':
+        sirmode = 'inversion'
+    
     # Notify using telegram that the inversion has finished.
-    sirutils.notify_telegram("[MPySIR] The inversion has finished in "+str(datetime.timedelta(seconds=total_time)).split(".")[0]+" at "+str(datetime.datetime.now())+" using "+str(comm.size)+" cores, using the machine "+os.uname()[1]+" and producing the model "+outputfile)
+    sirutils.notify_telegram("[MPySIR] The "+sirmode+" has finished in "+str(datetime.timedelta(seconds=total_time)).split(".")[0]+" at "+str(datetime.datetime.now())+" using "+str(comm.size)+" cores, using the machine "+os.uname()[1]+" and producing the model "+outputfile)
     # It only works if token and chat_id are defined in the environment variables.
