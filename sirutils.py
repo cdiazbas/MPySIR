@@ -364,7 +364,7 @@ def create_modelmap(inversion, inversion_file, npar = 12):
     directory = os.path.dirname(inversion_file)
 
     # Create the directory if it doesn't exist
-    if not os.path.exists(directory):
+    if not os.path.exists(directory) and directory != '':
         os.makedirs(directory)
 
     # Save the file:
@@ -409,7 +409,7 @@ def create_profilemap(inversion, inversion_file):
     directory = os.path.dirname(inversion_file)
 
     # Create the directory if it doesn't exist
-    if not os.path.exists(directory):
+    if not os.path.exists(directory) and directory != '':
         os.makedirs(directory)
 
     # Save the file:
