@@ -1,5 +1,5 @@
 # MPySIR
-SIR inversions: MPI implementation with python
+a parallel LTE-inversion code based on SIR
 
 ## Requirements
 
