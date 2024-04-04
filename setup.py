@@ -168,7 +168,7 @@ if comm.rank == 0:
         
         # We need to flatten the image to send it to the nodes, by
         # moving the X&Y dimensions to the first axis and then flattening:
-        image = image.reshape((totalpixels, nStokes, nLambdas)) 
+        image = image.reshape((totalpixels, nStokes, nLambdas))
         
         # Print the list of parts for each node:
         for nodei in range(comm.size):
@@ -178,6 +178,14 @@ if comm.rank == 0:
         # Divide the image in small portions and broadcast them to the nodes:
         for nodei in range(1, comm.size):
             myrange = listofparts[nodei]
+            
+            # Calculate the size in bytes
+            size_in_bytes = image[myrange,:,:].nbytes
+            if size_in_bytes > 2**31:
+                print('[ERROR] The size of the data to send is larger than 2^31 bytes. Exiting ...')
+                # Exit all the nodes:
+                comm.Abort()
+                
             comm.send(image[myrange,:,:], dest = nodei, tag = 100)
 
         # The master node keeps the first portion:

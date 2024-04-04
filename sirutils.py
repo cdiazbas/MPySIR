@@ -717,7 +717,7 @@ def loadanyfile(inpufile):
         inputdata = fits.open(inpufile)[0].data
     else:
         inputdata = np.load(inpufile)
-    return inputdata
+    return inputdata.astype(np.float32) 
 
 #=============================================================================
 def varname(p):

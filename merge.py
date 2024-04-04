@@ -19,12 +19,12 @@ def corrphi(azimuthmap):
 
 # ========================= MERGE
 # The first one is the baseline
-inversion_results = ['inv_original/finalSIR_cycle3fast_model.npy','inv_original/finalSIR_cycle3_model_fbest.npy'] 
+inversion_results = ['inv_100k_2E-3_30mA/100k_2E-3_30mA_conf3_model.npy','inv_100k_2E-3_30mA/100k_2E-3_30mA_conf2_model.npy'] 
 outputname = '_merged.npy'
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth.npy")
+observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_profiles_R_100k_2E-3_30mA.npy")
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
