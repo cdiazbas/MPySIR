@@ -54,7 +54,10 @@ comm.Barrier()
 from config import *
 
 x = None
-wavrange = None
+
+# Check if the variable wavrange exists, if not we define the variable:
+if 'wavrange' not in locals():
+    wavrange = None
 
 # Updates malla.grid and sir.trol if master:
 if comm.rank == 0:
