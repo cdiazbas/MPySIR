@@ -120,10 +120,11 @@ def modify_malla(dictLines, x):
     f.close()
 
     # Only modify the last line 
-    step = x[1]-x[0]
+    # step = x[1]-x[0] # This step will fail if there are rounding errors in the wavelength
+    step = (x[-1]-x[0])/(len(x)-1) # This step will be consistent with the wavelength range
     space = 10*' '
     lines[-1] = '{0}     :     {1:6.4f},     {2:6.4f},     {3:6.4f}'.format(dictLines['atom'],x[0],step,x[-1])+'\n'
-    print('[INFO] malla.grid updated: ',lines[-1][:-1])
+    print('[INFO] malla.grid updated: ','{0}: {1:6.4f}, {2:6.4f}, {3:6.4f}'.format(dictLines['atom'],x[0],step,x[-1]))
 
     # Write the file:
     f = open('invDefault/malla.grid','w')
@@ -703,7 +704,7 @@ def getLambdaRef(dictLines,Linesfile):
 
 
 #=============================================================================
-def loadanyfile(inpufile):
+def loadanyfile(inpufile, asfloat32=True):
     """
     Detect and load any file with the correct format
     """
@@ -717,7 +718,11 @@ def loadanyfile(inpufile):
         inputdata = fits.open(inpufile)[0].data
     else:
         inputdata = np.load(inpufile)
-    return inputdata.astype(np.float32) 
+        
+    if asfloat32:
+        return inputdata.astype(np.float32)
+    else:
+        return inputdata
 
 #=============================================================================
 def varname(p):

@@ -9,13 +9,14 @@ another pixel.
 
 # ========================= FINDBEST =========================
 # The first one is the baseline
-inversion_results = 'inv_100k_2E-3_30mA/100k_2E-3_30mA_conf3_model_merged.npy'
+inversion_results = '/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/inversions/results_sunspot/MPySIR/inv_100k_5E-3_5mA_1line/100k_5E-3_5mA_1line_conf2_model.npy'
 outputname = '_fbest.npy'
+wavrange = range(200,401) # None or range(200,401)
 
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data/"
-stokes_name = "sunspot_jmb_sir_synth_profiles_R_100k_2E-3_30mA.npy"
+stokes_name = "sunspot_jmb_sir_synth_profiles_R_100k_5E-3.npy"
 observed_stokes = np.load(directory+stokes_name)
 print("Using observed profiles: ",directory+stokes_name)
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
@@ -26,6 +27,14 @@ npix = 1*4000#4*4000
 # npix = 400
 # npix = int(0.01*observed_stokes.shape[0]*observed_stokes.shape[1])
 print('npix = ',npix)
+
+# Only compare the wavelength range:
+if wavrange is not None:
+    observed_stokes = observed_stokes[:,:,wavrange,:]
+    print('Cropping the wavelength range to: ',wavrange)
+    print('New observed_stokes.shape = ',observed_stokes.shape)
+else:
+    pass
 
 # Load the inversion model as baseline
 inversion_model = np.load(inversion_results)

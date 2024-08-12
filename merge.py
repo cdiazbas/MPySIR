@@ -19,15 +19,16 @@ def corrphi(azimuthmap):
 
 # ========================= MERGE
 # The first one is the baseline
-inversion_results = ['inv_100k_2E-3_30mA/100k_2E-3_30mA_conf3_model.npy','inv_100k_2E-3_30mA/100k_2E-3_30mA_conf2_model.npy'] 
+inversion_results = ['inv_100k_5E-3_5mA_1line/100k_5E-3_5mA_1line_conf2_model_fbest.npy','inv_100k_5E-3_5mA_1line/100k_5E-3_5mA_1line_conf1_model.npy'] 
 outputname = '_merged.npy'
 
 # Observed profiles
 directory = "/mn/stornext/d20/RoCS/carlosjd/projects/wSPRESOL/data"
-observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_profiles_R_100k_2E-3_30mA.npy")
+observed_stokes = np.load(directory+"/sunspot_jmb_sir_synth_profiles_R_100k_5E-3.npy")
 observed_stokes = observed_stokes.transpose(0,1,2,3) # (x,y,lambda,stokes)
 print('observed_stokes.shape = ',observed_stokes.shape)
 
+observed_stokes = observed_stokes[:,:,range(200,401),:] # Range of wavelength points to be used in the inversion
 
 # Load any inversion model as baseline
 inversion_model_list = []

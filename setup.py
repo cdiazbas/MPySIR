@@ -71,11 +71,12 @@ if comm.rank == 0:
     lambdaRef = sirutils.getLambdaRef(dictLines,Linesfile)
 
     # Load wavelength (this is the same for all nodes):
-    xlambda = sirutils.loadanyfile(wavefile)
-
+    xlambda = sirutils.loadanyfile(wavefile, asfloat32=False)
+    
     if wavrange is None:
         wavrange = range(len(xlambda))  # Wavelength range to be used in the inversion
-    x = (xlambda[wavrange] -lambdaRef)*1e3  # Wavelength in mA
+    x = (xlambda -lambdaRef)*1e3  # Wavelength in mA
+    x = x[wavrange]
 
     # Modify the "malla.grid" file to change the wavelength range.
     sirutils.modify_malla(dictLines, x)
