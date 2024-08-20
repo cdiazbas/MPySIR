@@ -1,5 +1,10 @@
 # MPySIR
-a parallel LTE-inversion code based on SIR
+a parallel LTE-inversion code based on SIR.
+
+> The original SIR code (Ruiz Cobo & del Toro Iniesta, 1992) is not parallelized, and inverting large datasets can be computationally demanding. To address this, we have developed a parallelized version of the SIR code, named MPySIR. This version is written in Python and utilizes the MPI library to parallelize the inversion process. As a result, the inversion tasks can be distributed across multiple processors. It's important to note that the core implementation remains unaltered, with all MPI calls being made from within Python.
+
+> This enhanced implementation consolidates both the existing features of the SIR code and the new parallelization capabilities into a single configuration file. Through this file, users can control various aspects, such as the input/output files, abundances, the mode of synthesis or inversion, the number of nodes for each physical parameter, and more. Additional features include debugging tools, the option to perform inversions only within a specified region of the dataset, the ability to combine different inversion results, the option to use previous inversion results as inputs for subsequent cycles, along with numerous other possibilities.
+
 
 ## Requirements
 
@@ -22,19 +27,21 @@ a parallel LTE-inversion code based on SIR
 
 The repository structure is organized as follows:
 
-- `LICENSE`: Contains the license details for this project.
-- `README.md`: This file, containing details about the project and instructions for setting it up.
-- `config.py.example`: An example configuration file to guide users in setting up their own inversion.
+- `invDefault`: Folder containing the default inversion configuration files.
+- `config.py.example`: An example configuration file to guide users in setting up their own inversion. Remove the `.example` extension to use it.
+- `setup.py`: Main Python script to run the inversion.
+
+The rest of the files are utilities and scripts to help with the inversion process:
 - `sirutils.py`: Python script containing utilities for this MPI implementation.
 - `sirtools.py`: Python script containing utilities for reading and writing SIR files.
 - `clean.py`: Python script to clean up the output files if needed.
 - `allmaps.py`: Python script to produce some quick plots of the inversion results.
 - `merge.py`: Python script to combine different inversion results according to the quality of the fit.
-- `findbest.py`: Python script to improve the inversion results by finding the other better solutions.
-- `invDefault`: Folder containing the default inversion configuration files.
+- `findbest.py`: Python script to improve the inversion results by finding the better solutions in other pixels.
 - `nextcycle.py`: Python script to filter the inversion results and prepare for the next cycle.
 - `requirements.txt`: Lists all Python dependencies required.
-- `setup.py`: Main Python script to run the inversion.
+- `LICENSE`: Contains the license details for this project.
+- `README.md`: This file, containing details about the project and instructions for setting it up.
 
 
 ## Commit messages
