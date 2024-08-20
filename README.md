@@ -14,7 +14,7 @@ a parallel LTE-inversion code based on SIR.
 
 - Open the file `config.py.example` file and save it as `config.py`
 - Modify the parameters in the `config.py` file to suit your needs
-- If you do not have the source code of SIR, you can download it from [here](https://github.com/cdiazbas/SIRcode) and copy it to the `invDefault` folder.
+- If you do not have the source code of SIR, you can download it from [here](https://github.com/cdiazbas/SIRcode), compile it, and copy the `sir.x` executable inside the `invDefault` folder.
 - Run the inversion in MPI mode with `mpirun -np <nproc> python setup.py`
 
 ## Input and output formats
