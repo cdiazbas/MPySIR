@@ -1,10 +1,9 @@
 # MPySIR
-a parallel LTE-inversion code based on SIR.
+a parallel LTE inversion code for spectropolarimetric observations based on the *Stokes Inversion based on Response functions* (SIR) code.
 
-> The original SIR code (Ruiz Cobo & del Toro Iniesta, 1992) is not parallelized, and inverting large datasets can be computationally demanding. To address this, we have developed a parallelized version of the SIR code, named MPySIR. This version is written in Python and utilizes the MPI library to parallelize the inversion process. As a result, the inversion tasks can be distributed across multiple processors. It's important to note that the core implementation remains unaltered, with all MPI calls being made from within Python.
+> The original SIR code (Ruiz Cobo & del Toro Iniesta, 1992) is not parallelized, and inverting large datasets can be computationally demanding. To address this, we have developed a parallel version of the SIR code, named MPySIR. This version is written in Python and utilizes the MPI library to parallelize the inversion process. As a result, the inversion tasks can be distributed across multiple processors. It's important to note that the core implementation remains unaltered, with all MPI calls being made from within Python.
 
-> This enhanced implementation consolidates both the existing features of the SIR code and the new parallelization capabilities into a single configuration file. Through this file, users can control various aspects, such as the input/output files, abundances, the mode of synthesis or inversion, the number of nodes for each physical parameter, and more. Additional features include debugging tools, the option to perform inversions only within a specified region of the dataset, the ability to combine different inversion results, the option to use previous inversion results as inputs for subsequent cycles, along with numerous other possibilities.
-
+> This new implementation integrates in a single configuration file the previous functionalities of the SIR code and new functionalities related to the parallelization. Through this file, users can control various aspects, such as the input/output files, abundances, the mode of synthesis or inversion, the number of nodes for each physical parameter, and more. Additional features include debugging tools, the option to perform inversions only within a specified region of the dataset, the ability to combine different inversion results, the option to use previous inversion results as inputs for subsequent cycles, along with numerous other possibilities. The only feature that we did not carry over is multi-component inversions, mostly because we are interested in very high-resolution observations where we deem that feature unnecessary. 
 
 ## Requirements
 
@@ -37,20 +36,20 @@ The rest of the files are utilities and scripts to help with the inversion proce
 - `clean.py`: Python script to clean up the output files if needed.
 - `allmaps.py`: Python script to produce some quick plots of the inversion results.
 - `merge.py`: Python script to combine different inversion results according to the quality of the fit.
-- `findbest.py`: Python script to improve the inversion results by finding the better solutions in other pixels.
+- `findbest.py`: Python script to improve the inversion results by finding better solutions in other pixels.
 - `nextcycle.py`: Python script to filter the inversion results and prepare for the next cycle.
 - `requirements.txt`: Lists all Python dependencies required.
 - `LICENSE`: Contains the license details for this project.
-- `README.md`: This file, containing details about the project and instructions for setting it up.
+- `README.md`: This file contains details about the project and instructions for setting it up.
 
 
 ## Commit messages
 
-Use following tags for commit messages:
+Use the following tags for commit messages:
 
-       [ADD] : Adding new feature
-       [DEV] : Improve existing feature
-       [DEL] : Removing files, routines
-       [FIX] : Fixes existing features
-       [OPT] : Optimisation
-       [DOC] : Documentation only
+    [ADD] : Adding a new feature
+    [DEV] : Improving an existing feature
+    [DEL] : Removing files, routines
+    [FIX] : Fixing existing features
+    [OPT] : Optimisation
+    [DOC] : Documentation only
