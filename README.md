@@ -21,6 +21,14 @@ a parallel LTE inversion code for spectropolarimetric observations based on the 
 - The input data is expected to be FITS or NUMPY files with no specific order of the dimensions. This information is added in the `config.py` file.
 - The output data is now a NUMPY file under the name given in the `config.py` file, of size [ny,nx,ntau,nparam] with 12 parameters in the following order: $\log(\tau_{500})$ (logarithm of the continuum optical depth at 500nm), Temperature ($\rm K$), Electron pressure ($\rm dyn/cm^2$), Microturbulent velocity ($\rm cm/s$), Magnetic field strength ($\rm G$), Line-of-sight velocity ($\rm cm/s$), Inclination angle of the magnetic field vector (deg), Azimuthal angle of the magnetic field vector (deg), Macroturbulent velocity ($\rm km/s$), Filling factor, Stray light (fraction), $\chi^2$.
 
+## Telegram Notifications
+
+MPySIR includes a feature to send Telegram notifications when the inversion is finished. To enable this feature, you need to set the following environment variables:
+
+- `TELEGRAM_TOKEN`: Your Telegram bot token.
+- `TELEGRAM_CHATID`: Your Telegram chat ID.
+
+The function `notify_telegram` in `sirutils.py` is used to send Telegram notifications. It checks for the environment variables `TELEGRAM_TOKEN` and `TELEGRAM_CHATID` to send the notification. If these variables are not set, the notification will not be sent.
 
 ## Repository Structure
 
