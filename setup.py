@@ -20,11 +20,12 @@ SIRMODE:
 
 # ================================================= OS
 import os
-# Forcing that each process only uses one thread:
+# Force each process to use only one thread
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 # ================================================= TIME
-import time; start_time = time.time()
+import time
+start_time = time.time()
 
 # ================================================= LIBRARIES
 import numpy as np
@@ -39,25 +40,28 @@ import datetime
 comm = MPI.COMM_WORLD
 widthT = 1
 if comm.rank == 0:
-    (widthT, heightT) = sirutils.getTerminalSize()
-    print('-'*widthT)
-    print('Running on %d cores' % comm.size)
-    print('-'*widthT)
+    widthT, heightT = sirutils.getTerminalSize()
+    print('-' * widthT)
+    print(f'Running on {comm.size} cores')
+    print('-' * widthT)
     sirutils.total_cores()
-    from clean import clean; clean()
+    from clean import clean
+    clean()
 comm.Barrier()
-
 
 # ================================================= PARAMETERS
 
-# Retrieve all parameters from the config file:
+# Retrieve all parameters from the config file
 from config import *
 
 x = None
 
-# Check if the variable wavrange exists, if not we define the variable:
-if 'wavrange' not in locals():
-    wavrange = None
+# Define variables if they are not defined in the config file
+wavrange = locals().get('wavrange', None)
+apply_constraints = locals().get('apply_constraints', False)
+chi2map = locals().get('chi2map', True)
+verbose = locals().get('verbose', False)
+
 
 # Updates malla.grid and sir.trol if master:
 if comm.rank == 0:
